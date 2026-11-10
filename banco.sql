@@ -79,3 +79,64 @@ revoke execute on function public.trava_lista() from public, anon, authenticated
 revoke execute on function public.valida_resultado() from public, anon, authenticated;
 
 alter publication supabase_realtime add table public.lista, public.resultados;
+
+-- ---------------------------------------------------------------------------
+-- Trava do sorteio válido e reinício com senha (histórico público)
+-- ---------------------------------------------------------------------------
+create table public.controle (
+  id smallint primary key default 1 check (id = 1),
+  travado boolean not null default false,
+  travado_em timestamptz
+);
+insert into public.controle (id) values (1);
+alter table public.controle enable row level security;
+create policy "todos leem o controle" on public.controle for select to anon, authenticated using (true);
+
+create table public.historico_resets (
+  id bigint generated always as identity primary key,
+  resetado_em timestamptz not null default now(),
+  estava_travado boolean not null,
+  resultados_apagados jsonb not null
+);
+alter table public.historico_resets enable row level security;
+create policy "todos leem o histórico" on public.historico_resets for select to anon, authenticated using (true);
+
+-- valida_resultado() passou a recusar gravação com o sorteio travado:
+--   if (select travado from public.controle where id = 1) then raise exception 'O sorteio está travado.'; end if;
+
+create or replace function public.travar_sorteio() returns timestamptz
+language plpgsql security definer set search_path = '' as $$
+declare quando timestamptz := now();
+begin
+  if not public.is_admin() then raise exception 'Sem permissão.'; end if;
+  if (select count(*) from public.resultados) < 4 then raise exception 'Faça os 4 sorteios antes de travar.'; end if;
+  if (select travado from public.controle where id = 1) then raise exception 'O sorteio já está travado.'; end if;
+  update public.controle set travado = true, travado_em = quando where id = 1;
+  return quando;
+end $$;
+
+-- Reiniciar exige login feito nos últimos 2 minutos (senha digitada de novo).
+-- Os resultados apagados vão antes para o histórico público.
+create or replace function public.resetar_sorteio() returns void
+language plpgsql security definer set search_path = '' as $$
+declare ultimo_login timestamptz;
+begin
+  if not public.is_admin() then raise exception 'Sem permissão.'; end if;
+  select last_sign_in_at into ultimo_login from auth.users where id = auth.uid();
+  if ultimo_login is null or ultimo_login < now() - interval '2 minutes' then
+    raise exception 'Digite a senha novamente para reiniciar.';
+  end if;
+  if exists (select 1 from public.resultados) then
+    insert into public.historico_resets (estava_travado, resultados_apagados)
+    select (select travado from public.controle where id = 1),
+           jsonb_agg(to_jsonb(r) order by r.sorteio) from public.resultados r;
+  end if;
+  delete from public.resultados;
+  update public.controle set travado = false, travado_em = null where id = 1;
+end $$;
+
+revoke execute on function public.travar_sorteio() from public, anon;
+revoke execute on function public.resetar_sorteio() from public, anon;
+grant execute on function public.travar_sorteio() to authenticated;
+grant execute on function public.resetar_sorteio() to authenticated;
+alter publication supabase_realtime add table public.controle, public.historico_resets;

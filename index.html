@@ -47,7 +47,7 @@ h1, h2, h3, p { margin: 0; }
 .progress i.on { background: var(--brand); width: 36px; border-radius: 6px; }
 .progress i.done { background: var(--sky); }
 
-.slide { display: none; flex: 1; padding: 52px 96px 0; min-height: 0; }
+.slide { display: none; flex: 1; padding: 30px 96px 0; min-height: 0; }
 .slide.active { display: flex; flex-direction: column; }
 h1 { font-size: 132px; font-weight: 800; line-height: .98; letter-spacing: -.015em; margin-top: 24px; }
 h1 em, h2 em { color: var(--brand); font-style: italic; }
@@ -172,6 +172,14 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
 .dialog p { color: var(--muted); line-height: 1.45; }
 .dialog .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .dialog button { font-size: 15px; padding: 10px 18px; }
+.faixa { margin: 0 96px; display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 14px 24px; font-size: 22px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+.faixa.valido { background: var(--brand); color: #fff; }
+.faixa.simulacao { background: #e8794f; color: #fff; }
+.faixa span small { font-size: 16px; font-weight: 500; letter-spacing: .08em; text-transform: none; margin-left: 14px; opacity: .9; }
+.faixa button { font: 600 16px var(--font); letter-spacing: 0; text-transform: none; padding: 8px 18px; border: 2px solid #fff; color: #fff; background: transparent; border-radius: 6px; }
+.faixa button:hover { background: rgba(255,255,255,.15); }
+.trava-info { margin-top: 18px; font-size: 22px; font-weight: 600; color: var(--brand); }
+.historico-info { margin-top: 14px; font-size: 19px; color: var(--red); }
 .modo { font-size: 18px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 8px 18px; border-radius: 999px; }
 .modo:empty { display: none; }
 .modo.ensaio { background: #f6e1da; color: var(--red); }
@@ -191,8 +199,9 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
   <div id="stage">
     <div class="top">
       <img class="logo-img" src="assets/fitcasa.png" alt="Fit Casa Rio Bonito">
-      <div style="display:flex; align-items:center; gap:28px"><span id="modoBadge" class="modo"></span><div class="kicker"><span class="dot"></span>Natal e Ano Novo 2026</div></div>
+      <div class="kicker"><span class="dot"></span>Natal e Ano Novo 2026</div>
     </div>
+    <div id="faixa" class="faixa"><span id="faixaTexto"></span><button id="btnTrocarModo" type="button"></button></div>
 
     <!-- 1. Abertura -->
     <section class="slide" data-nome="Abertura">
@@ -243,9 +252,11 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
     <section class="slide" data-nome="Resultado">
       <div class="head-row">
         <div><div class="kicker">Resultado final</div><h2>Os <em>vencedores</em></h2></div>
-        <div style="text-align:right"><div style="display:flex; gap:12px; justify-content:flex-end"><button id="btnCopy" type="button" disabled>Copiar resultado para o WhatsApp</button></div><div id="copyMsg" class="msg" role="status"></div></div>
+        <div style="text-align:right"><div style="display:flex; gap:12px; justify-content:flex-end"><button id="btnSimular" type="button" class="primary" hidden>Simular de novo</button><button id="btnResetValido" type="button" hidden>Reiniciar sorteio válido</button><button id="btnTravar" type="button" class="primary" hidden>Travar sorteio</button><button id="btnCopy" type="button" disabled>Copiar resultado para o WhatsApp</button></div><div id="copyMsg" class="msg" role="status"></div></div>
       </div>
+      <p id="travaInfo" class="trava-info" hidden></p>
       <div class="results" id="results"></div>
+      <p id="historicoInfo" class="historico-info" hidden></p>
       <div class="closing">
         <p>Obrigado pela participação de todos. <b>Boas festas</b> para você e sua família.</p>
         <div class="kicker muted">Lista de espera completa em cada sorteio</div>
@@ -264,19 +275,18 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
   <button id="btnPrev" type="button">← Voltar</button>
   <button id="btnNext" type="button">Avançar →</button>
   <button id="btnFull" type="button">Tela cheia</button>
-  <button id="btnModo" type="button" class="so-admin" hidden>Mudar para valendo</button>
-  <button id="btnReset" type="button" hidden>Recomeçar ensaio</button>
+  <button id="btnReset" type="button" hidden>Recomeçar simulação</button>
   <button id="btnEntrar" type="button">Entrar</button>
   <button id="btnSair" type="button" hidden>Sair</button>
 </div>
 
 <div class="overlay" id="confirm" role="dialog" aria-modal="true" aria-labelledby="ct">
   <div class="dialog">
-    <h3 id="ct">Recomeçar o ensaio?</h3>
-    <p>Os resultados do ensaio serão apagados e a apresentação volta para a abertura. Nada do que vale é afetado.</p>
+    <h3 id="ct">Recomeçar a simulação?</h3>
+    <p>Os resultados desta simulação serão apagados. O sorteio válido não é afetado.</p>
     <div class="row">
-      <button id="cancelReset" type="button" class="primary">Continuar ensaio</button>
-      <button id="okReset" type="button">Apagar ensaio</button>
+      <button id="cancelReset" type="button" class="primary">Continuar</button>
+      <button id="okReset" type="button">Recomeçar</button>
     </div>
   </div>
 </div>
@@ -308,6 +318,32 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
   </div>
 </div>
 
+<div class="overlay" id="travar" role="dialog" aria-modal="true" aria-labelledby="tt">
+  <div class="dialog">
+    <h3 id="tt">Travar o sorteio válido?</h3>
+    <p>Depois de travar, ninguém consegue sortear no modo válido, nem a sindicatura. Para reiniciar será preciso digitar a senha de novo, e o reinício fica registrado publicamente nesta página.</p>
+    <div class="row">
+      <button id="okTravar" type="button" class="primary">Travar sorteio</button>
+      <button id="cancelTravar" type="button">Cancelar</button>
+    </div>
+    <p id="travarMsg" class="lmsg" role="status"></p>
+  </div>
+</div>
+
+<div class="overlay" id="resetValido" role="dialog" aria-modal="true" aria-labelledby="rt">
+  <form class="dialog" id="formReset">
+    <h3 id="rt">Reiniciar o sorteio válido</h3>
+    <p>Os 4 resultados gravados serão apagados e o sorteio volta a ficar destravado. Os resultados apagados ficam registrados no histórico público da página.</p>
+    <label for="senhaReset" class="lbl">Digite a senha novamente</label>
+    <input id="senhaReset" type="password" autocomplete="current-password" required>
+    <div class="row">
+      <button type="submit" class="primary">Reiniciar</button>
+      <button id="cancelResetValido" type="button">Cancelar</button>
+    </div>
+    <p id="resetMsg" class="lmsg" role="status"></p>
+  </form>
+</div>
+
 <div class="overlay" id="aviso" role="alertdialog" aria-modal="true" aria-labelledby="at">
   <div class="dialog">
     <h3 id="at">Atenção</h3>
@@ -320,7 +356,8 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
 // ============================================================================
 // Sorteio dos Salões de Festas · Fit Casa Rio Bonito
 // Página pública. Qualquer pessoa vê a lista oficial e os resultados.
-// Só o administrador (login) publica a lista e sorteia. Os resultados ficam
+// Qualquer pessoa pode simular o sorteio quantas vezes quiser (nada é gravado).
+// Só o administrador (login) publica a lista e faz o sorteio válido. Os resultados ficam
 // gravados no banco (Supabase) com o horário do servidor, e o banco recusa
 // gravar um sorteio que já foi feito.
 // Código aberto: https://github.com/MuriloBarbelli/sorteio-fitcasa
@@ -336,7 +373,7 @@ const SORTEIOS = [
   { nome: "Ano Novo (31/12 e 01/01) - Salão 3", data: "Ano Novo", dias: "31/12 e 01/01", salao: "Salão 3", curto: "A3" },
 ];
 
-// Inscrições de exemplo, usadas só no modo ensaio quando ainda não há lista oficial.
+// Inscrições de exemplo, usadas na simulação enquanto a lista oficial não é publicada.
 const TODOS = SORTEIOS.map(s => s.nome).join(";");
 const EXEMPLO = [
   { Torre: "1", Apartamento: "0000", Sorteios: TODOS },
@@ -352,13 +389,14 @@ const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE
 
 // ---------------------------------------------------------------- estado
 let admin = false;            // logado como administrador
-let ensaio = false;           // modo ensaio: nada é gravado
-let oficial = { lista: null, resultados: [] };          // vindo do banco
-let local = { lista: null, resultados: [] };            // só no ensaio
+let ensaio = false;           // modo simulação: qualquer pessoa sorteia à vontade, nada é gravado
+let oficial = { lista: null, resultados: [], controle: { travado: false, travado_em: null }, historico: [] };   // vindo do banco
+let local = { lista: null, resultados: [] };            // só na simulação, neste navegador
 let inscricoes = new Map();   // da lista em uso: id -> {torre, apto, sorteios:Set}
 let duplicadas = [];
 let resultados = [];          // da fonte em uso
 let rodando = false;
+const podeSortear = () => ensaio || (admin && !oficial.controle.travado);
 let atual = 0;
 let animando = new Set();
 let gravando = new Set();      // sorteios que este navegador está gravando agora     // sorteios recebidos que ainda estão "girando" para o visitante
@@ -442,15 +480,21 @@ function aplicarFonte() {
 
 // ---------------------------------------------------------------- telas
 function renderCabecalhoModo() {
-  const b = $("modoBadge");
-  if (admin && ensaio) { b.textContent = "Ensaio · não vale"; b.className = "modo ensaio"; }
-  else if (admin) { b.textContent = "Valendo · grava resultado"; b.className = "modo valendo"; }
-  else { b.textContent = ""; b.className = "modo"; }
-  document.querySelectorAll(".so-admin").forEach(el => el.hidden = !admin);
-  $("btnModo").textContent = ensaio ? "Mudar para valendo" : "Mudar para ensaio";
+  const f = $("faixa");
+  if (ensaio) {
+    f.className = "faixa simulacao";
+    $("faixaTexto").innerHTML = "Simulando sorteio<small>não vale · nada é gravado</small>";
+    $("btnTrocarModo").textContent = "Ver sorteio válido";
+  } else {
+    f.className = "faixa valido";
+    const feitos = oficial.resultados.filter(Boolean).length;
+    const t = oficial.controle.travado ? `travado em ${fmtHora(oficial.controle.travado_em)}` : feitos ? `${feitos} de 4 sorteios gravados` : "aguardando o sorteio";
+    $("faixaTexto").innerHTML = `Sorteio válido<small>${t}</small>`;
+    $("btnTrocarModo").textContent = "Simular sorteio";
+  }
   $("btnEntrar").hidden = admin;
   $("btnSair").hidden = !admin;
-  $("btnReset").hidden = !(admin && ensaio);
+  $("btnReset").hidden = !ensaio;
 }
 
 function renderInscritos() {
@@ -466,7 +510,7 @@ function renderInscritos() {
     return;
   }
   if (ensaio && !listaAtual) { $("fonte").textContent = "Exemplo: inscrições de teste"; $("fonte").className = "warn"; }
-  else if (ensaio && local.lista) { $("fonte").textContent = `Ensaio: ${local.lista.arquivo}`; $("fonte").className = "warn"; }
+  else if (ensaio && local.lista) { $("fonte").textContent = `Simulação: ${local.lista.arquivo}`; $("fonte").className = "warn"; }
   else { $("fonte").textContent = `Lista oficial publicada em ${fmtHora(oficial.lista.publicada_em)}`; $("fonte").className = "okfile"; }
 
   $("stats").innerHTML = `<div class="stat"><b>${ids.length}</b><span>unidades inscritas</span></div>` +
@@ -497,8 +541,8 @@ function renderSorteios() {
     else if (i === prox) reveal = `<div class="reveal" id="reveal${i}"><div class="idle"><b>${aptos.length}</b> unidade${aptos.length === 1 ? "" : "s"} concorrendo</div></div>`;
     else reveal = `<div class="reveal" id="reveal${i}"><div class="idle">Aguardando o sorteio anterior</div></div>`;
     const nota = excl.length ? `<p class="draw-note">Fora deste sorteio por já ter ganho o Salão 1 nesta data: <b>${excl.map(rotulo).join(", ")}</b></p>` : "";
-    const quando = r && r.sorteado_em ? `<p class="draw-note">${ensaio ? "Ensaio feito em" : "Sorteado em"} <b>${fmtHora(r.sorteado_em)}</b>${ensaio ? "" : " (horário registrado pelo servidor)"}</p>` : "";
-    const botao = r || animando.has(i) || !admin ? "" : `<div style="margin-top:28px"><button id="btnDraw${i}" type="button" class="primary big" ${i === prox && aptos.length && !rodando ? "" : "disabled"}>Sortear ${s.data}, ${s.salao}</button></div>`;
+    const quando = r && r.sorteado_em ? `<p class="draw-note">${ensaio ? "Simulação feita em" : "Sorteado em"} <b>${fmtHora(r.sorteado_em)}</b>${ensaio ? "" : " (horário registrado pelo servidor)"}</p>` : "";
+    const botao = r || animando.has(i) || !podeSortear() ? "" : `<div style="margin-top:28px"><button id="btnDraw${i}" type="button" class="primary big" ${i === prox && aptos.length && !rodando ? "" : "disabled"}>Sortear ${s.data}, ${s.salao}</button></div>`;
     const explica = r ? "" : `<p class="draw-note">O sistema sorteia a vencedora no clique, com chance igual para todas. A roleta passa <b>o mesmo número de vezes por todas as unidades</b> e para na sorteada.</p>`;
     let direita;
     if (r) {
@@ -526,7 +570,20 @@ function renderSorteios() {
 
 function renderResultado() {
   const completo = SORTEIOS.every((s, i) => resultados[i] && !animando.has(i));
+  const algum = oficial.resultados.some(Boolean);
+  const c = oficial.controle;
+  $("btnCopy").hidden = ensaio;
   $("btnCopy").disabled = !completo;
+  $("btnSimular").hidden = !ensaio;
+  $("btnTravar").hidden = !(admin && !ensaio && completo && !c.travado);
+  $("btnResetValido").hidden = !(admin && !ensaio && algum);
+  $("travaInfo").hidden = ensaio || !c.travado;
+  $("travaInfo").textContent = c.travado ? `Sorteio travado em ${fmtHora(c.travado_em)}. Nenhum novo sorteio válido pode ser feito.` : "";
+  const h = oficial.historico;
+  $("historicoInfo").hidden = ensaio || !h.length;
+  $("historicoInfo").textContent = h.length
+    ? `Registro público: o sorteio válido foi reiniciado pela sindicatura ${h.length} ${h.length === 1 ? "vez" : "vezes"} (${h.map(x => fmtHora(x.resetado_em)).join("; ")}). Os resultados apagados ficam guardados no banco.`
+    : "";
   $("results").innerHTML = SORTEIOS.map((s, i) => {
     const r = animando.has(i) ? null : resultados[i];
     const w = r ? (r.vencedor ? `<div class="w">${rotulo(r.vencedor)}</div>` : `<div class="w none">Sem inscritos</div>`) : `<div class="w none">A sortear</div>`;
@@ -611,7 +668,7 @@ function travarControles(sim) {
 }
 
 async function sortear(i) {
-  if (!admin || rodando || resultados[i] || i !== proximoSorteio()) return;
+  if (!podeSortear() || rodando || resultados[i] || i !== proximoSorteio()) return;
   const s = SORTEIOS[i];
   const inscritos = inscritosEm(s);
   const bloqueados = jaGanharamNaData(i);
@@ -654,12 +711,16 @@ async function sortear(i) {
 // ---------------------------------------------------------------- banco (leitura e tempo real)
 async function carregarOficial() {
   if (!sb) { mostrarAviso("Não foi possível conectar. Confira a internet e recarregue a página."); return; }
-  const [l, r] = await Promise.all([
+  const [l, r, c, h] = await Promise.all([
     sb.from("lista").select("*").maybeSingle(),
     sb.from("resultados").select("*").order("sorteio"),
+    sb.from("controle").select("*").maybeSingle(),
+    sb.from("historico_resets").select("id,resetado_em,estava_travado").order("resetado_em"),
   ]);
-  if (l.error || r.error) { mostrarAviso("Não foi possível carregar os dados. Recarregue a página."); return; }
+  if (l.error || r.error || c.error || h.error) { mostrarAviso("Não foi possível carregar os dados. Recarregue a página."); return; }
   oficial.lista = l.data;
+  oficial.controle = c.data || { travado: false, travado_em: null };
+  oficial.historico = h.data || [];
   oficial.resultados = [];
   (r.data || []).forEach(x => { oficial.resultados[x.sorteio] = x; });
 }
@@ -683,7 +744,15 @@ function ouvirMudancas() {
       }
       aplicarFonte();
     })
+    .on("postgres_changes", { event: "DELETE", schema: "public", table: "resultados" }, recarregar)
+    .on("postgres_changes", { event: "*", schema: "public", table: "controle" }, recarregar)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "historico_resets" }, recarregar)
     .subscribe();
+}
+let recarga;
+function recarregar() {
+  clearTimeout(recarga);
+  recarga = setTimeout(async () => { if (rodando) return recarregar(); await carregarOficial(); aplicarFonte(); }, 300);
 }
 
 // ---------------------------------------------------------------- login
@@ -710,7 +779,7 @@ $("formLogin").addEventListener("submit", async e => {
   if (!admin) { $("loginMsg").textContent = "Este acesso ainda não foi liberado."; await sb.auth.signOut(); return; }
   $("senha").value = "";
   fechar("login");
-  ensaio = true;                       // ao entrar, começa em ensaio por segurança
+  ensaio = false;                      // logado, abre no sorteio válido
   aplicarFonte();
 });
 $("btnPrimeiro").onclick = async () => {
@@ -719,13 +788,38 @@ $("btnPrimeiro").onclick = async () => {
   const { error } = await sb.auth.signUp({ email: ADMIN_EMAIL, password: senha });
   $("loginMsg").textContent = error ? `Não foi possível criar: ${error.message}` : "Senha criada. Avise o Claude para liberar o acesso e depois clique em Entrar.";
 };
-$("btnSair").onclick = async () => { await sb.auth.signOut(); admin = false; ensaio = false; local = { lista: null, resultados: [] }; aplicarFonte(); };
-$("btnModo").onclick = () => {
+$("btnSair").onclick = async () => { await sb.auth.signOut(); admin = false; local.lista = null; aplicarFonte(); };
+$("btnTrocarModo").onclick = () => {
   if (rodando) return;
   ensaio = !ensaio;
   local.resultados = [];
   aplicarFonte();
 };
+
+// ---------------------------------------------------------------- travar e reiniciar (só administrador)
+$("btnTravar").onclick = () => { $("travarMsg").textContent = ""; abrir("travar"); };
+$("cancelTravar").onclick = () => fechar("travar");
+$("okTravar").onclick = async () => {
+  $("travarMsg").textContent = "Travando...";
+  const { error } = await sb.rpc("travar_sorteio");
+  if (error) { $("travarMsg").textContent = `Não foi possível travar: ${error.message}`; return; }
+  fechar("travar");
+  await carregarOficial(); aplicarFonte();
+};
+$("btnResetValido").onclick = () => { $("resetMsg").textContent = ""; $("senhaReset").value = ""; abrir("resetValido"); setTimeout(() => $("senhaReset").focus(), 50); };
+$("cancelResetValido").onclick = () => fechar("resetValido");
+$("formReset").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("resetMsg").textContent = "Conferindo a senha...";
+  const login = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password: $("senhaReset").value });
+  $("senhaReset").value = "";
+  if (login.error) { $("resetMsg").textContent = "Senha incorreta. Nada foi apagado."; return; }
+  const { error } = await sb.rpc("resetar_sorteio");
+  if (error) { $("resetMsg").textContent = `Não foi possível reiniciar: ${error.message}`; return; }
+  fechar("resetValido");
+  await carregarOficial(); aplicarFonte(); mostrar(0);
+});
+$("btnSimular").onclick = () => { if (rodando) return; local.resultados = []; aplicarFonte(); mostrar(3); };
 
 // ---------------------------------------------------------------- arquivo do Forms
 $("arquivo").addEventListener("change", async e => {
@@ -822,9 +916,9 @@ document.addEventListener("mousemove", e => {
   aplicarFonte();
   await carregarOficial();
   admin = await verificarAdmin();
-  ensaio = admin;                        // administrador sempre começa em ensaio
+  ensaio = false;                        // todo mundo abre no sorteio válido
   aplicarFonte();
-  if (!admin && SORTEIOS.every((s, i) => oficial.resultados[i])) mostrar(slides().length - 1);   // tudo sorteado: abre no resultado
+  if (!admin && SORTEIOS.every((s, i) => oficial.resultados[i])) mostrar(slides().length - 1);   // tudo sorteado: visitante abre no resultado
   ouvirMudancas();
 })();
 </script>

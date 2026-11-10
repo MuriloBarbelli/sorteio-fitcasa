@@ -2,7 +2,10 @@
 
 Página pública do sorteio das reservas dos Salões 1 e 3 para o Natal (24 e 25/12) e o Ano Novo (31/12 e 01/01).
 
-Qualquer pessoa pode abrir a página e acompanhar a lista de inscritos e os resultados. Só a sindicatura, com login, publica a lista e conduz o sorteio.
+A página tem dois modos, sempre indicados por uma faixa no topo:
+
+- **Sorteio válido:** mostra a lista oficial de inscritos e os resultados gravados. Só a sindicatura, com login, publica a lista e faz o sorteio válido.
+- **Simulando sorteio:** qualquer pessoa pode rodar o sorteio quantas vezes quiser, com a lista oficial, para conferir que os resultados variam e não têm tendência. Nada do que é simulado é gravado.
 
 ## Regras do sorteio
 
@@ -26,3 +29,5 @@ Os dados ficam no Supabase. As regras abaixo valem no servidor, não dependem da
 - Os sorteios precisam seguir a ordem, e o vencedor precisa estar inscrito naquele sorteio.
 - A lista de inscritos não pode ser trocada depois do primeiro sorteio.
 - O horário de cada sorteio é o do servidor, não o do computador de quem sorteou.
+- Depois dos 4 sorteios, a sindicatura trava o resultado. Com o sorteio travado, o banco recusa qualquer novo sorteio válido.
+- Para reiniciar, a sindicatura precisa digitar a senha de novo. Todo reinício fica registrado em um histórico público, mostrado na própria página, com os resultados que foram apagados.
