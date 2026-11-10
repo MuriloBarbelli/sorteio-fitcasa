@@ -20,6 +20,16 @@ A página tem dois modos, sempre indicados por uma faixa no topo:
 - A roleta é só a apresentação do resultado: todas as unidades aparecem o mesmo número de vezes e ela para na sorteada.
 - O código está todo em `index.html`. As funções que decidem o resultado são `aleatorio`, `embaralhar` e `sortear`.
 
+## Auditoria na própria página
+
+O botão **Auditoria**, na faixa do topo, abre três abas:
+
+- **Teste com 10.000 simulações:** roda o sorteio completo 10.000 vezes com a mesma função do sorteio válido e mostra, para cada salão, quantas vezes cada unidade ganhou comparado ao número esperado.
+- **Linha do tempo:** publicação da lista, cada sorteio, trava e reinícios, com o horário do servidor.
+- **Como funciona e código:** explicação em português e o código que decide o resultado, extraído do próprio programa em funcionamento.
+
+O rodapé mostra a versão do código em uso, com link para essa versão exata no GitHub.
+
 ## Garantias do banco de dados
 
 Os dados ficam no Supabase. As regras abaixo valem no servidor, não dependem da página (veja `banco.sql`):

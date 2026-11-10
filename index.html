@@ -178,6 +178,41 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
 .faixa span small { font-size: 16px; font-weight: 500; letter-spacing: .08em; text-transform: none; margin-left: 14px; opacity: .9; }
 .faixa button { font: 600 16px var(--font); letter-spacing: 0; text-transform: none; padding: 8px 18px; border: 2px solid #fff; color: #fff; background: transparent; border-radius: 6px; }
 .faixa button:hover { background: rgba(255,255,255,.15); }
+.faixa-botoes { display: flex; gap: 12px; }
+.versao { display: block; font-size: 15px; color: var(--muted); margin-top: 6px; text-decoration: none; letter-spacing: .02em; }
+.versao:hover { text-decoration: underline; }
+.painel { position: fixed; inset: 0; z-index: 20; background: rgba(31,34,48,.55); overflow-y: auto; padding: 24px 16px; }
+.painel-in { max-width: 1040px; margin: 0 auto; background: var(--paper); border-top: 6px solid var(--brand); padding: 28px 32px 40px; font-size: 17px; line-height: 1.55; }
+.painel-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.painel-top h2 { font-size: 34px; margin: 0; }
+.painel button { font: 600 15px var(--font); padding: 9px 16px; border-width: 1.5px; border-radius: 6px; }
+.painel h3 { font-size: 21px; margin: 26px 0 8px; }
+.painel p { margin: 10px 0; }
+.painel .nota { color: var(--muted); font-size: 15px; }
+.painel .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 16px 0; }
+.abas { display: flex; gap: 6px; margin: 18px 0 8px; border-bottom: 2px solid var(--line); flex-wrap: wrap; }
+.abas button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; color: var(--muted); margin-bottom: -2px; }
+.abas button.on { color: var(--ink); border-bottom-color: var(--brand); }
+.painel pre { background: #1f2230; color: #e9eef0; padding: 18px; overflow-x: auto; font: 13.5px/1.5 ui-monospace, Menlo, Consolas, monospace; border-radius: 6px; }
+.painel code { background: var(--beige); padding: 1px 6px; border-radius: 4px; font-size: .92em; }
+.passos li { margin: 6px 0; }
+.tempo { list-style: none; padding: 0; margin: 14px 0; border-left: 3px solid var(--sky); }
+.tempo li { padding: 8px 0 8px 18px; position: relative; }
+.tempo li::before { content: ""; position: absolute; left: -8px; top: 15px; width: 13px; height: 13px; border-radius: 50%; background: var(--brand); }
+.tempo li.alerta::before { background: var(--red); }
+.tempo time { display: block; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.teste-bloco { margin-top: 22px; }
+.teste-bloco h4 { font-size: 18px; margin: 0 0 6px; }
+.teste-bloco .resumo { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.barra { display: grid; grid-template-columns: 110px 1fr 200px; gap: 12px; align-items: center; font-size: 14px; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.barra .trilho { position: relative; height: 16px; background: #ebe7df; border-radius: 3px; }
+.barra .cheio { position: absolute; left: 0; top: 0; bottom: 0; background: var(--sky); border-radius: 3px; }
+.barra .esp { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.barra .num { text-align: right; color: var(--muted); white-space: nowrap; }
+.barra .num b { color: var(--ink); }
+.legenda-teste { display: flex; gap: 20px; font-size: 14px; color: var(--muted); align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.legenda-teste i { display: inline-block; width: 22px; height: 12px; background: var(--sky); border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legenda-teste i.l { width: 2px; height: 16px; background: var(--ink); }
 .trava-info { margin-top: 18px; font-size: 22px; font-weight: 600; color: var(--brand); }
 .historico-info { margin-top: 14px; font-size: 19px; color: var(--red); }
 .modo { font-size: 18px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 8px 18px; border-radius: 999px; }
@@ -201,7 +236,7 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
       <img class="logo-img" src="assets/fitcasa.png" alt="Fit Casa Rio Bonito">
       <div class="kicker"><span class="dot"></span>Natal e Ano Novo 2026</div>
     </div>
-    <div id="faixa" class="faixa"><span id="faixaTexto"></span><button id="btnTrocarModo" type="button"></button></div>
+    <div id="faixa" class="faixa"><span id="faixaTexto"></span><div class="faixa-botoes"><button id="btnAuditoria" type="button">Auditoria</button><button id="btnTrocarModo" type="button"></button></div></div>
 
     <!-- 1. Abertura -->
     <section class="slide" data-nome="Abertura">
@@ -264,7 +299,7 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
     </section>
 
     <div class="bottom">
-      <div class="kicker">Gestão responsável</div>
+      <div><div class="kicker">Gestão responsável</div><a id="versao" class="versao" href="https://github.com/MuriloBarbelli/sorteio-fitcasa" target="_blank" rel="noopener">Código aberto no GitHub</a></div>
       <div class="progress" id="progress"></div>
       <img class="sindi-img" src="assets/sindicompany.png" alt="Sindicompany">
     </div>
@@ -315,6 +350,48 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
       <button id="okPublicar" type="button" class="primary">Publicar</button>
       <button id="cancelPublicar" type="button">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<div class="painel" id="auditoria" role="dialog" aria-modal="true" aria-labelledby="audT" hidden>
+  <div class="painel-in">
+    <div class="painel-top">
+      <h2 id="audT">Auditoria do sorteio</h2>
+      <button id="fecharAuditoria" type="button">Fechar</button>
+    </div>
+    <div class="abas" role="tablist">
+      <button type="button" role="tab" data-aba="teste" class="on">Teste com 10.000 simulações</button>
+      <button type="button" role="tab" data-aba="tempo">Linha do tempo</button>
+      <button type="button" role="tab" data-aba="codigo">Como funciona e código</button>
+    </div>
+
+    <section class="aba" data-aba="teste">
+      <p>Este teste roda o sorteio completo (os 4 salões, com a regra de um salão por data) <b>10.000 vezes</b>, usando a <b>mesma função</b> que faz o sorteio válido. Nada é gravado. Se o sorteio for justo, cada unidade ganha perto do número esperado.</p>
+      <p class="nota">Por que o esperado nem sempre é igual para todas: no Salão 3, quem também concorreu ao Salão 1 pode ser retirado por já ter ganho. Quem se inscreveu só no Salão 3 nunca é retirado, então tem chance um pouco maior ali. O número esperado já leva isso em conta.</p>
+      <div class="row"><button id="btnTeste" type="button" class="primary">Rodar 10.000 simulações</button><span id="testeInfo" class="nota"></span></div>
+      <div id="testeResultado"></div>
+    </section>
+
+    <section class="aba" data-aba="tempo" hidden>
+      <p>Tudo o que aconteceu no sorteio válido, com o horário registrado pelo servidor do banco de dados (não pelo computador de quem sorteou).</p>
+      <ol id="linhaTempo" class="tempo"></ol>
+    </section>
+
+    <section class="aba" data-aba="codigo" hidden>
+      <h3>Como o resultado é decidido</h3>
+      <ol class="passos">
+        <li>Para cada salão, entram as unidades inscritas nele. Quem já ganhou o outro salão na mesma data sai.</li>
+        <li>O computador escolhe a vencedora com o gerador aleatório do navegador (<code>crypto.getRandomValues</code>), o mesmo usado em criptografia. Todas as unidades aptas têm a mesma chance.</li>
+        <li>As demais unidades são embaralhadas da mesma forma e formam a lista de espera.</li>
+        <li>No sorteio válido, o resultado é gravado no banco <b>no momento do clique</b>, antes da roleta girar. A roleta só apresenta o resultado.</li>
+        <li>O banco recusa gravar o mesmo sorteio duas vezes, recusa sorteio fora de ordem e, depois de travado, recusa qualquer sorteio novo. Todo reinício fica registrado na linha do tempo.</li>
+      </ol>
+      <h3>O código que está rodando agora nesta página</h3>
+      <p class="nota">O texto abaixo é extraído do próprio programa em funcionamento, não é uma cópia.</p>
+      <pre id="codigoVivo"></pre>
+      <h3>Código completo</h3>
+      <p>Todo o código da página e as regras do banco de dados estão publicados em <a href="https://github.com/MuriloBarbelli/sorteio-fitcasa" target="_blank" rel="noopener">github.com/MuriloBarbelli/sorteio-fitcasa</a>. O GitHub registra a data de cada alteração. <span id="versaoTexto"></span></p>
+    </section>
   </div>
 </div>
 
@@ -606,7 +683,7 @@ function mostrar(n) {
   $("btnPrev").disabled = rodando || atual === 0;
   $("btnNext").disabled = rodando || atual === lista.length - 1;
 }
-function renderTudo() { renderCabecalhoModo(); renderInscritos(); renderSorteios(); renderResultado(); mostrar(atual); }
+function renderTudo() { if (!$("auditoria").hidden) renderLinhaTempo(); renderCabecalhoModo(); renderInscritos(); renderSorteios(); renderResultado(); mostrar(atual); }
 
 // ---------------------------------------------------------------- roleta
 // Voltas completas: em cada volta, todas as unidades aparecem exatamente uma vez, em ordem aleatória.
@@ -667,17 +744,25 @@ function travarControles(sim) {
   if (!sim) renderTudo();
 }
 
-async function sortear(i) {
-  if (!podeSortear() || rodando || resultados[i] || i !== proximoSorteio()) return;
+// NÚCLEO DO SORTEIO. É esta função que decide o resultado, no sorteio válido, na simulação
+// e no teste de 10.000 simulações. "anteriores" são os resultados já sorteados.
+function executarSorteio(i, anteriores, inscritos = inscritosEm(SORTEIOS[i])) {
   const s = SORTEIOS[i];
-  const inscritos = inscritosEm(s);
-  const bloqueados = jaGanharamNaData(i);
+  // quem já ganhou o outro salão na mesma data sai deste sorteio
+  const bloqueados = new Set();
+  anteriores.forEach((r, k) => { if (r && r.vencedor && SORTEIOS[k].data === s.data) bloqueados.add(r.vencedor); });
   const excluidos = inscritos.filter(id => bloqueados.has(id));
   const aptos = inscritos.filter(id => !bloqueados.has(id));
-  if (!aptos.length) return;
+  if (!aptos.length) return { vencedor: null, suplentes: [], excluidos, aptos: [] };
+  const vencedor = aptos[aleatorio(aptos.length)];                    // chance igual para cada unidade apta
+  const suplentes = embaralhar(aptos.filter(id => id !== vencedor));  // lista de espera em ordem aleatória
+  return { vencedor, suplentes, excluidos, aptos };
+}
 
-  const vencedor = aptos[aleatorio(aptos.length)];
-  const suplentes = embaralhar(aptos.filter(id => id !== vencedor));
+async function sortear(i) {
+  if (!podeSortear() || rodando || resultados[i] || i !== proximoSorteio()) return;
+  const { vencedor, suplentes, excluidos, aptos } = executarSorteio(i, resultados);
+  if (!aptos.length) return;
   const reduz = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const plano = aptos.length > 1 && !reduz ? planoRoleta(aptos, vencedor) : null;
   const registro = { sorteio: i, vencedor, suplentes, excluidos, aptos: aptos.length, animacao_ms: plano ? plano.duracao : 0 };
@@ -715,7 +800,7 @@ async function carregarOficial() {
     sb.from("lista").select("*").maybeSingle(),
     sb.from("resultados").select("*").order("sorteio"),
     sb.from("controle").select("*").maybeSingle(),
-    sb.from("historico_resets").select("id,resetado_em,estava_travado").order("resetado_em"),
+    sb.from("historico_resets").select("*").order("resetado_em"),
   ]);
   if (l.error || r.error || c.error || h.error) { mostrarAviso("Não foi possível carregar os dados. Recarregue a página."); return; }
   oficial.lista = l.data;
@@ -857,6 +942,98 @@ $("okPublicar").onclick = async () => {
   aplicarFonte();
 };
 
+// ---------------------------------------------------------------- auditoria
+function abrirAuditoria(aba) {
+  $("auditoria").hidden = false;
+  trocarAba(aba || "teste");
+  renderLinhaTempo();
+  $("codigoVivo").textContent = [aleatorio, embaralhar, executarSorteio].map(f => f.toString()).join("\n\n");
+}
+function trocarAba(nome) {
+  document.querySelectorAll(".abas button").forEach(b => b.classList.toggle("on", b.dataset.aba === nome));
+  document.querySelectorAll(".aba").forEach(a => a.hidden = a.dataset.aba !== nome);
+}
+$("btnAuditoria").onclick = () => abrirAuditoria();
+$("fecharAuditoria").onclick = () => { $("auditoria").hidden = true; };
+$("auditoria").addEventListener("click", e => { if (e.target.id === "auditoria") $("auditoria").hidden = true; });
+document.querySelectorAll(".abas button").forEach(b => b.onclick = () => trocarAba(b.dataset.aba));
+
+function renderLinhaTempo() {
+  const ev = [];
+  const L = oficial.lista;
+  if (L) ev.push({ t: L.publicada_em, txt: `Lista oficial publicada: ${L.unidades.length} unidades (arquivo ${L.arquivo})` });
+  oficial.resultados.forEach((r, i) => { if (r) ev.push({ t: r.sorteado_em, txt: `Sorteio ${i + 1}, ${SORTEIOS[i].data} ${SORTEIOS[i].salao}: vencedor ${r.vencedor ? rotulo(r.vencedor) : "sem inscritos"} (${r.aptos} unidades concorrendo)` }); });
+  if (oficial.controle.travado) ev.push({ t: oficial.controle.travado_em, txt: "Sorteio travado pela sindicatura" });
+  oficial.historico.forEach(h => {
+    const ap = (h.resultados_apagados || []).map(r => `${SORTEIOS[r.sorteio].data} ${SORTEIOS[r.sorteio].salao}: ${r.vencedor ? rotulo(r.vencedor) : "sem inscritos"}`).join("; ");
+    ev.push({ t: h.resetado_em, alerta: true, txt: `Sorteio válido reiniciado pela sindicatura${h.estava_travado ? " (estava travado)" : ""}. Resultados apagados: ${ap || "nenhum"}` });
+  });
+  ev.sort((a, b) => new Date(a.t) - new Date(b.t));
+  $("linhaTempo").innerHTML = ev.length
+    ? ev.map(e => `<li class="${e.alerta ? "alerta" : ""}"><time>${fmtHora(e.t)}</time>${e.txt}</li>`).join("")
+    : `<li>Nada registrado ainda. A lista oficial será publicada antes do sorteio.</li>`;
+}
+
+// Probabilidade exata de cada unidade ganhar cada salão, para comparar com o teste.
+function chancesEsperadas(insc) {
+  return SORTEIOS.map((s, i) => {
+    const prob = new Map(insc[i].map(id => [id, 0]));
+    const k = SORTEIOS.findIndex((x, j) => j < i && x.data === s.data);   // sorteio anterior da mesma data
+    const cenarios = k < 0 || !insc[k].length ? [[null, 1]] : insc[k].map(w => [w, 1 / insc[k].length]);
+    for (const [w, pw] of cenarios) {
+      const aptos = insc[i].filter(id => id !== w);
+      aptos.forEach(id => prob.set(id, prob.get(id) + pw / aptos.length));
+    }
+    return prob;
+  });
+}
+
+$("btnTeste").onclick = () => {
+  const N = 10000;
+  const insc = SORTEIOS.map(inscritosEm);
+  if (!insc.some(x => x.length)) { $("testeInfo").textContent = "Ainda não há inscritos para testar."; return; }
+  $("btnTeste").disabled = true;
+  $("testeInfo").textContent = "Rodando...";
+  setTimeout(() => {
+    const t0 = performance.now();
+    const vitorias = SORTEIOS.map(() => new Map());
+    for (let n = 0; n < N; n++) {
+      const res = [];
+      for (let i = 0; i < SORTEIOS.length; i++) {
+        res[i] = executarSorteio(i, res, insc[i]);            // a mesma função do sorteio válido
+        const v = res[i].vencedor;
+        if (v) vitorias[i].set(v, (vitorias[i].get(v) || 0) + 1);
+      }
+    }
+    const esperado = chancesEsperadas(insc);
+    const fonte = ensaio && local.lista ? `lista da simulação (${local.lista.arquivo})` : oficial.lista ? "lista oficial" : "inscrições de exemplo";
+    $("testeInfo").textContent = `${N.toLocaleString("pt-BR")} sorteios completos em ${Math.round(performance.now() - t0)} ms, com a ${fonte}. Rode de novo: as pequenas diferenças mudam de lugar a cada vez.`;
+    $("testeResultado").innerHTML = SORTEIOS.map((s, i) => {
+      if (!insc[i].length) return `<div class="teste-bloco"><h4>${s.data}, ${s.salao}</h4><p class="nota">Sem inscritos.</p></div>`;
+      const linhas = insc[i].map(id => ({ id, v: vitorias[i].get(id) || 0, e: esperado[i].get(id) * N }));
+      const max = Math.max(...linhas.map(l => Math.max(l.v, l.e)));
+      const desvio = Math.max(...linhas.map(l => Math.abs(l.v - l.e) / l.e));
+      return `<div class="teste-bloco"><h4>${s.data}, ${s.salao}</h4>
+        <div class="resumo">${insc[i].length} unidades · maior diferença em relação ao esperado: ${(desvio * 100).toFixed(1).replace(".", ",")}%</div>
+        ${linhas.map(l => `<div class="barra"><span>${curto(l.id)}</span><span class="trilho"><span class="cheio" style="width:${(l.v / max * 100).toFixed(2)}%"></span><span class="esp" style="left:${(l.e / max * 100).toFixed(2)}%"></span></span><span class="num"><b>${l.v.toLocaleString("pt-BR")}</b> · esperado ${Math.round(l.e).toLocaleString("pt-BR")}</span></div>`).join("")}
+      </div>`;
+    }).join("") + `<div class="legenda-teste"><span><i></i>vitórias no teste</span><span><i class="l"></i>número esperado</span></div>`;
+    $("btnTeste").disabled = false;
+  }, 30);
+};
+
+// Versão do código: último commit publicado no GitHub
+async function carregarVersao() {
+  try {
+    const r = await fetch("https://api.github.com/repos/MuriloBarbelli/sorteio-fitcasa/commits?path=index.html&per_page=1");
+    const [c] = await r.json();
+    const sha = c.sha.slice(0, 7), quando = fmtHora(c.commit.committer.date);
+    $("versao").textContent = `Código aberto · versão ${sha}, de ${quando}`;
+    $("versao").href = `https://github.com/MuriloBarbelli/sorteio-fitcasa/commit/${c.sha}`;
+    $("versaoTexto").innerHTML = `Versão em uso: <a href="https://github.com/MuriloBarbelli/sorteio-fitcasa/blob/${c.sha}/index.html" target="_blank" rel="noopener">${sha}</a>, publicada em ${quando}.`;
+  } catch { /* sem internet para o GitHub: mantém o link genérico */ }
+}
+
 // ---------------------------------------------------------------- outros controles
 function textoResultado() {
   const linhas = ["*Resultado do sorteio dos Salões de Festas: Natal e Ano Novo*", ""];
@@ -876,8 +1053,8 @@ $("btnCopy").onclick = async () => {
 $("btnPrev").onclick = () => { if (!rodando) mostrar(atual - 1); };
 $("btnNext").onclick = () => { if (!rodando) mostrar(atual + 1); };
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => o.classList.remove("open"));
-  if (rodando || document.querySelector(".overlay.open") || e.target.tagName === "INPUT") return;
+  if (e.key === "Escape") { document.querySelectorAll(".overlay.open").forEach(o => o.classList.remove("open")); $("auditoria").hidden = true; }
+  if (rodando || document.querySelector(".overlay.open") || !$("auditoria").hidden || e.target.tagName === "INPUT") return;
   if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); mostrar(atual + 1); }
   if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); mostrar(atual - 1); }
 });
@@ -920,6 +1097,7 @@ document.addEventListener("mousemove", e => {
   aplicarFonte();
   if (!admin && SORTEIOS.every((s, i) => oficial.resultados[i])) mostrar(slides().length - 1);   // tudo sorteado: visitante abre no resultado
   ouvirMudancas();
+  carregarVersao();
 })();
 </script>
 </body>
