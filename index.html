@@ -204,9 +204,16 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
 .teste-bloco { margin-top: 22px; }
 .teste-bloco h4 { font-size: 18px; margin: 0 0 6px; }
 .teste-bloco .resumo { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
-.barra { display: grid; grid-template-columns: 110px 1fr 200px; gap: 12px; align-items: center; font-size: 14px; padding: 2px 0; font-variant-numeric: tabular-nums; }
-.barra .trilho { position: relative; height: 16px; background: #ebe7df; border-radius: 3px; }
+.barra { display: grid; grid-template-columns: 110px 1fr 240px; gap: 12px; align-items: center; font-size: 14px; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.barra .trilho { position: relative; height: 18px; background: #ebe7df; border-radius: 3px; }
 .barra .cheio { position: absolute; left: 0; top: 0; bottom: 0; background: var(--sky); border-radius: 3px; }
+.barra .faixa-normal { position: absolute; top: -3px; bottom: -3px; background: rgba(15,76,92,.16); border-left: 1px solid rgba(15,76,92,.45); border-right: 1px solid rgba(15,76,92,.45); }
+.barra .ponto { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--brand); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--brand); z-index: 2; }
+.barra.fora .ponto { background: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.legenda-teste i.pt { width: 12px; height: 12px; border-radius: 50%; background: var(--brand); }
+.barra.fora .num b { color: var(--red); }
+.teste-resumo { font-size: 18px; margin: 14px 0 0; }
+.legenda-teste i.fx { background: rgba(15,76,92,.16); border: 1px solid rgba(15,76,92,.45); }
 .barra .esp { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
 .barra .num { text-align: right; color: var(--muted); white-space: nowrap; }
 .barra .num b { color: var(--ink); }
@@ -367,8 +374,10 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
 
     <section class="aba" data-aba="teste">
       <p>Este teste roda o sorteio completo (os 4 salões, com a regra de um salão por data) <b>10.000 vezes</b>, usando a <b>mesma função</b> que faz o sorteio válido. Nada é gravado. Se o sorteio for justo, cada unidade ganha perto do número esperado.</p>
-      <p class="nota">Por que o esperado nem sempre é igual para todas: no Salão 3, quem também concorreu ao Salão 1 pode ser retirado por já ter ganho. Quem se inscreveu só no Salão 3 nunca é retirado, então tem chance um pouco maior ali. O número esperado já leva isso em conta.</p>
+      <p class="nota"><b>Faixa normal:</b> mesmo num sorteio perfeito, o número de vitórias varia um pouco a cada rodada. A faixa mostra até onde essa variação é normal: um sorteio justo cai dentro dela em 99% das vezes.</p>
+      <p class="nota">Por que a faixa nem sempre é igual para todas: no Salão 3, quem também concorreu ao Salão 1 pode ser retirado por já ter ganho. Quem se inscreveu só no Salão 3 nunca é retirado, então tem chance um pouco maior ali. A faixa já leva isso em conta.</p>
       <div class="row"><button id="btnTeste" type="button" class="primary">Rodar 10.000 simulações</button><span id="testeInfo" class="nota"></span></div>
+      <p id="testeResumo" class="teste-resumo"></p>
       <div id="testeResultado"></div>
     </section>
 
@@ -1008,16 +1017,30 @@ $("btnTeste").onclick = () => {
     const esperado = chancesEsperadas(insc);
     const fonte = ensaio && local.lista ? `lista da simulação (${local.lista.arquivo})` : oficial.lista ? "lista oficial" : "inscrições de exemplo";
     $("testeInfo").textContent = `${N.toLocaleString("pt-BR")} sorteios completos em ${Math.round(performance.now() - t0)} ms, com a ${fonte}. Rode de novo: as pequenas diferenças mudam de lugar a cada vez.`;
+    let totalBarras = 0, totalDentro = 0;
     $("testeResultado").innerHTML = SORTEIOS.map((s, i) => {
       if (!insc[i].length) return `<div class="teste-bloco"><h4>${s.data}, ${s.salao}</h4><p class="nota">Sem inscritos.</p></div>`;
-      const linhas = insc[i].map(id => ({ id, v: vitorias[i].get(id) || 0, e: esperado[i].get(id) * N }));
-      const max = Math.max(...linhas.map(l => Math.max(l.v, l.e)));
-      const desvio = Math.max(...linhas.map(l => Math.abs(l.v - l.e) / l.e));
+      // Faixa normal: média ± 2,58 desvios-padrão (distribuição binomial). Um sorteio justo cai
+      // dentro dela em 99% das vezes; ou seja, de cada 100 barras, cerca de 1 pode ficar fora por puro acaso.
+      const linhas = insc[i].map(id => {
+        const pr = esperado[i].get(id), e = pr * N, dp = Math.sqrt(N * pr * (1 - pr));
+        const min = Math.max(0, Math.floor(e - 2.58 * dp)), max = Math.ceil(e + 2.58 * dp);
+        const v = vitorias[i].get(id) || 0;
+        return { id, v, e, min, max, dentro: v >= min && v <= max };
+      });
+      // eixo ampliado em volta da faixa, para as diferenças ficarem visíveis
+      const lo = Math.min(...linhas.map(l => Math.min(l.v, l.min))), hi = Math.max(...linhas.map(l => Math.max(l.v, l.max)));
+      const folga = (hi - lo) * 0.08, ini = Math.max(0, lo - folga), escala = hi + folga - ini;
+      const dentro = linhas.filter(l => l.dentro).length;
+      totalBarras += linhas.length; totalDentro += dentro;
+      const pct = x => ((x - ini) / escala * 100).toFixed(2);
       return `<div class="teste-bloco"><h4>${s.data}, ${s.salao}</h4>
-        <div class="resumo">${insc[i].length} unidades · maior diferença em relação ao esperado: ${(desvio * 100).toFixed(1).replace(".", ",")}%</div>
-        ${linhas.map(l => `<div class="barra"><span>${curto(l.id)}</span><span class="trilho"><span class="cheio" style="width:${(l.v / max * 100).toFixed(2)}%"></span><span class="esp" style="left:${(l.e / max * 100).toFixed(2)}%"></span></span><span class="num"><b>${l.v.toLocaleString("pt-BR")}</b> · esperado ${Math.round(l.e).toLocaleString("pt-BR")}</span></div>`).join("")}
+        <div class="resumo">${dentro} de ${linhas.length} unidades dentro da faixa normal</div>
+        ${linhas.map(l => `<div class="barra ${l.dentro ? "" : "fora"}"><span>${curto(l.id)}</span><span class="trilho"><span class="faixa-normal" style="left:${pct(l.min)}%; width:${(pct(l.max) - pct(l.min)).toFixed(2)}%"></span><span class="ponto" style="left:${pct(l.v)}%"></span><span class="esp" style="left:${pct(l.e)}%"></span></span><span class="num"><b>${l.v.toLocaleString("pt-BR")}</b> · normal de ${l.min.toLocaleString("pt-BR")} a ${l.max.toLocaleString("pt-BR")}</span></div>`).join("")}
       </div>`;
-    }).join("") + `<div class="legenda-teste"><span><i></i>vitórias no teste</span><span><i class="l"></i>número esperado</span></div>`;
+    }).join("") + `<div class="legenda-teste"><span><i class="pt"></i>vitórias no teste</span><span><i class="fx"></i>faixa normal</span><span><i class="l"></i>média esperada</span></div>`;
+    $("testeResumo").innerHTML = `<b>${totalDentro} de ${totalBarras}</b> resultados dentro da faixa normal.` +
+      (totalDentro < totalBarras ? ` Num sorteio justo, cerca de 1 em cada 100 fica fora por acaso. Rode de novo: se for acaso, a unidade fora da faixa muda.` : "");
     $("btnTeste").disabled = false;
   }, 30);
 };
