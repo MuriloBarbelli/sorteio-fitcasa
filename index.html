@@ -164,7 +164,7 @@ button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); out
 /* controles fora do palco (ficam pequenos no canto da janela) */
 #controls { position: fixed; right: 14px; bottom: 14px; display: flex; gap: 8px; z-index: 5; transition: opacity .3s; }
 #controls.hide { opacity: 0; pointer-events: none; }
-#controls button { font-size: 14px; padding: 8px 14px; border-width: 1.5px; background: rgba(250,249,246,.92); border-radius: 6px; }
+#controls button { font-size: 13px; padding: 6px 12px; border-width: 1.5px; background: rgba(250,249,246,.92); border-radius: 6px; }
 .overlay { position: fixed; inset: 0; background: rgba(31,34,48,.5); display: none; place-items: center; padding: 16px; z-index: 10; }
 .overlay.open { display: grid; }
 .dialog { background: var(--paper); border-top: 4px solid var(--sky); padding: 26px; max-width: 460px; display: grid; gap: 16px; font-size: 16px; }
@@ -798,18 +798,27 @@ $("cancelReset").onclick = () => fechar("confirm");
 $("okReset").onclick = () => { local.resultados = []; atual = 0; $("copyMsg").textContent = ""; fechar("confirm"); aplicarFonte(); };
 
 // Os controles somem depois de 2,5 s sem mexer o mouse, para não aparecerem na live.
+// Os controles só aparecem quando o mouse chega perto da borda de baixo da tela, e somem
+// 2 s depois que ele sai de lá. Assim não cobrem a apresentação na live.
 let ocultar;
 function mostrarControles() {
   $("controls").classList.remove("hide");
   clearTimeout(ocultar);
-  ocultar = setTimeout(() => { if (!document.querySelector(".overlay.open")) $("controls").classList.add("hide"); }, 2500);
 }
-document.addEventListener("mousemove", mostrarControles);
+function esconderDepois(ms) {
+  clearTimeout(ocultar);
+  ocultar = setTimeout(() => { if (!document.querySelector(".overlay.open")) $("controls").classList.add("hide"); }, ms);
+}
+document.addEventListener("mousemove", e => {
+  const pertoDaBorda = e.clientY > window.innerHeight - 90;
+  const sobreControles = e.target.closest && e.target.closest("#controls");
+  if (pertoDaBorda || sobreControles) mostrarControles(); else if (!$("controls").classList.contains("hide")) esconderDepois(2000);
+});
 
 // ---------------------------------------------------------------- início
 (async function iniciar() {
   ajustarEscala();
-  mostrarControles();
+  mostrarControles(); esconderDepois(4000);   // aparecem ao abrir a página, para mostrar onde estão
   aplicarFonte();
   await carregarOficial();
   admin = await verificarAdmin();
