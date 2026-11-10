@@ -131,7 +131,8 @@ begin
     select (select travado from public.controle where id = 1),
            jsonb_agg(to_jsonb(r) order by r.sorteio) from public.resultados r;
   end if;
-  delete from public.resultados;
+  -- "where sorteio >= 0" porque o Supabase recusa DELETE sem WHERE em chamadas pela API
+  delete from public.resultados where sorteio >= 0;
   update public.controle set travado = false, travado_em = null where id = 1;
 end $$;
 
