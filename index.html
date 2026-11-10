@@ -572,7 +572,7 @@ function renderResultado() {
   const completo = SORTEIOS.every((s, i) => resultados[i] && !animando.has(i));
   const algum = oficial.resultados.some(Boolean);
   const c = oficial.controle;
-  $("btnCopy").hidden = ensaio;
+  $("btnCopy").hidden = ensaio || !admin;   // só a sindicatura copia o texto para o WhatsApp
   $("btnCopy").disabled = !completo;
   $("btnSimular").hidden = !ensaio;
   $("btnTravar").hidden = !(admin && !ensaio && completo && !c.travado);
