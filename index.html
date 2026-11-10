@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorteio dos Salões de Natal e Ano Novo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+/* Apresentação 16:9 para live, na linguagem dos comunicados Fit Casa / Sindicompany:
+   off-white quente, grafite, azul petróleo da marca, azul-claro de apoio, bege; rótulos em caixa alta espaçada.
+   Palco fixo de 1920x1080 escalado para caber na janela; uma fase por tela. */
+:root {
+  --bg: #d9d6cf;
+  --paper: #f4f2ee;
+  --panel: #faf9f6;
+  --line: #dcd8d0;
+  --ink: #1f2230;
+  --muted: #6b6e78;
+  --brand: #0f4c5c;
+  --sky: #7cc4d6;
+  --beige: #ebe3d8;
+  --red: #b4462b;
+  --font: "Outfit", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font); overflow: hidden; }
+h1, h2, h3, p { margin: 0; }
+#viewport { position: fixed; inset: 0; }
+#stage { width: 1920px; height: 1080px; background: var(--paper); position: absolute; left: 50%; top: 50%; transform-origin: center center; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(31,34,48,.15); }
+
+/* moldura comum */
+.top { display: flex; justify-content: space-between; align-items: center; margin: 0 96px; padding: 44px 0 28px; border-bottom: 3px solid var(--ink); }
+.logo-img { height: 76px; width: auto; border-radius: 10px; display: block; }
+.kicker { font-weight: 600; font-size: 20px; letter-spacing: .32em; text-transform: uppercase; }
+.kicker.sky { color: var(--sky); }
+.kicker.muted { color: var(--muted); }
+.dot { display: inline-block; width: 16px; height: 16px; border-radius: 50%; background: var(--sky); box-shadow: 0 0 0 6px rgba(124,196,214,.3); margin-right: 20px; vertical-align: middle; }
+.bottom { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding: 26px 96px; border-top: 1px solid var(--line); }
+.sindi-img { height: 44px; width: auto; display: block; }
+.progress { display: flex; gap: 10px; align-items: center; }
+.progress i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); display: block; }
+.progress i.on { background: var(--brand); width: 36px; border-radius: 6px; }
+.progress i.done { background: var(--sky); }
+
+.slide { display: none; flex: 1; padding: 52px 96px 0; min-height: 0; }
+.slide.active { display: flex; flex-direction: column; }
+h1 { font-size: 132px; font-weight: 800; line-height: .98; letter-spacing: -.015em; margin-top: 24px; }
+h1 em, h2 em { color: var(--brand); font-style: italic; }
+h2 { font-size: 84px; font-weight: 800; line-height: 1; letter-spacing: -.01em; margin-top: 16px; }
+.lead { font-size: 34px; line-height: 1.4; margin-top: 34px; max-width: 30em; }
+.lead b { font-weight: 700; }
+
+.band { background: var(--ink); color: #fff; display: grid; grid-template-columns: 1.3fr 1fr; margin-top: auto; margin-bottom: 52px; }
+.band > div { padding: 34px 44px; }
+.band > div + div { border-left: 1px solid #3a3d4b; }
+.band .big { font-size: 50px; font-weight: 600; margin-top: 10px; }
+.band .big em { color: var(--sky); font-style: italic; font-weight: 800; }
+
+/* regras */
+.rules { display: grid; grid-template-columns: 1fr 1fr; margin-top: 44px; border: 1px solid var(--line); background: var(--panel); }
+.rule { display: grid; grid-template-columns: 88px 1fr; gap: 28px; padding: 34px 40px; border-bottom: 1px solid var(--line); }
+.rule:nth-child(odd) { border-right: 1px solid var(--line); }
+.rule:nth-last-child(-n+2) { border-bottom: 0; }
+.rule .ic { width: 88px; height: 88px; border-radius: 50%; background: var(--beige); display: grid; place-items: center; font-size: 34px; font-weight: 800; color: var(--brand); }
+.rule h3 { font-size: 34px; font-weight: 700; }
+.rule p { font-size: 26px; color: var(--muted); line-height: 1.4; margin-top: 8px; }
+.rule p b { color: var(--ink); font-weight: 600; }
+
+/* inscritos */
+.head-row { display: flex; justify-content: space-between; align-items: end; gap: 24px; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 30px; border: 1px solid var(--line); background: var(--panel); }
+.stat { padding: 12px 24px; border-right: 1px solid var(--line); }
+.stat:last-child { border-right: 0; }
+.stat b { display: block; font-size: 46px; font-weight: 800; color: var(--brand); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat span { font-size: 22px; color: var(--muted); }
+.legend { display: flex; gap: 26px; margin-top: 22px; font-size: 20px; color: var(--muted); align-items: center; flex-wrap: wrap; }
+.legend b { color: var(--ink); font-weight: 600; }
+.chips { display: grid; gap: 12px; margin-top: 18px; overflow-y: auto; align-content: start; flex: 1; min-height: 0; padding-bottom: 24px; }
+.chip { background: #fff; border: 1px solid var(--line); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.chip .u { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip .marks { display: flex; gap: 4px; }
+.chip .marks i { font-style: normal; font-weight: 700; font-size: .62em; padding: 2px 5px; border-radius: 4px; background: var(--brand); color: #fff; }
+.chip .marks i.off { background: transparent; color: #cfcac0; border: 1px solid #e3dfd7; }
+.chip.hot { background: var(--ink); border-color: var(--ink); color: #fff; box-shadow: 0 0 0 4px var(--sky); transform: scale(1.06); position: relative; z-index: 1; }
+.chip { transition: transform .08s; }
+.chip.gone { opacity: .25; text-decoration: line-through; transform: scale(.94); transition: opacity .25s, transform .25s; }
+.reveal .saiu { display: block; font-size: 64px; color: var(--muted); }
+.chip.out { opacity: .35; text-decoration: line-through; }
+.size-l { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); font-size: 30px; }
+.size-m { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); font-size: 23px; }
+.size-s { grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); font-size: 18px; gap: 8px; }
+.chip.simple { justify-content: center; }
+
+.tables { display: grid; gap: 22px; align-items: start; margin-top: 16px; flex: 1; min-height: 0; overflow-y: auto; align-content: start; padding-bottom: 20px; }
+.tables::-webkit-scrollbar { width: 14px; } .tables::-webkit-scrollbar-thumb { background: #c9c4ba; border-radius: 7px; border: 3px solid var(--paper); }
+.tables table { border-collapse: collapse; width: 100%; background: #fff; border: 1px solid var(--line); }
+.tables th, .tables td { border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.tables th { background: var(--beige); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); line-height: 1.25; position: sticky; top: 0; }
+.tables th.l, .tables td.l { text-align: left; }
+.tables td.apto { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tables td .ok { color: var(--brand); font-weight: 800; }
+.tables td .no { color: #cfcac0; }
+.t-l th { font-size: 15px; padding: 12px 16px; } .t-l td { font-size: 28px; padding: 8px 16px; }
+.t-m th { font-size: 13px; padding: 10px 12px; } .t-m td { font-size: 21px; padding: 5px 12px; }
+.t-r th { font-size: 15px; padding: 12px 18px; } .t-r td { font-size: 25px; padding: 7px 18px; }
+.t-s th { font-size: 10px; padding: 7px 6px; letter-spacing: .06em; } .t-s td { font-size: 17px; padding: 2px 6px; }
+.warn { font-size: 18px; padding: 6px 16px; border-radius: 999px; background: #f6e1da; color: var(--red); white-space: nowrap; }
+.okfile { font-size: 18px; padding: 6px 16px; border-radius: 999px; background: var(--beige); white-space: nowrap; }
+
+/* sorteio */
+.draw { display: grid; grid-template-columns: 1fr 760px; gap: 56px; flex: 1; min-height: 0; padding-bottom: 44px; }
+.draw-left { display: flex; flex-direction: column; min-height: 0; }
+.draw-right { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line); padding-left: 56px; }
+.reveal { margin-top: 36px; min-height: 300px; background: #fff; border: 2px dashed var(--line); display: grid; place-items: center; text-align: center; padding: 24px; }
+.reveal .unit { white-space: nowrap; font-size: 88px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.reveal .unit small { display: block; font-size: 22px; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+.reveal .idle { font-size: 40px; color: var(--muted); }
+.reveal .idle b { color: var(--brand); font-weight: 800; }
+.reveal.rolling .unit { color: var(--muted); }
+.reveal.winner { background: var(--ink); border: 0; color: #fff; }
+.reveal.winner .unit small { color: var(--sky); }
+.draw-note { font-size: 24px; color: var(--muted); margin-top: 22px; line-height: 1.4; }
+.draw-note b { color: var(--ink); font-weight: 600; }
+.wait { margin: 18px 0 0; padding-left: 40px; font-size: 26px; columns: 2; column-gap: 40px; overflow-y: auto; }
+.wait li { break-inside: avoid; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.wait.small { font-size: 20px; columns: 3; }
+
+/* resultado */
+.results { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; margin-top: 28px; border: 1px solid var(--line); }
+.res { padding: 24px 40px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.res:nth-child(odd) { border-right: 1px solid var(--line); }
+.res:nth-last-child(-n+2) { border-bottom: 0; }
+.res .w { font-size: 56px; font-weight: 800; color: var(--brand); margin-top: 12px; font-variant-numeric: tabular-nums; }
+.res .w.none { color: var(--muted); font-size: 40px; font-weight: 500; }
+.res .esp { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.res .esp .kicker { font-size: 15px; }
+.res .esp ol { display: flex; gap: 22px; margin: 0; padding: 0; list-style: none; counter-reset: e; font-size: 23px; font-variant-numeric: tabular-nums; }
+.res .esp li { counter-increment: e; white-space: nowrap; }
+.res .esp li::before { content: counter(e) "º "; color: var(--brand); font-weight: 700; }
+.res .esp .mais { font-size: 18px; color: var(--muted); }
+.res .s { font-size: 22px; color: var(--muted); margin-top: 8px; }
+.closing { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding: 16px 0 26px; gap: 24px; }
+.closing p { font-size: 28px; font-style: italic; max-width: 1100px; }
+.closing .kicker { white-space: nowrap; }
+.closing p b { color: var(--brand); }
+
+/* botões */
+button, .filebtn { font: 600 24px var(--font); border-radius: 8px; padding: 16px 30px; cursor: pointer; border: 2px solid var(--ink); background: transparent; color: var(--ink); }
+button.primary { background: var(--ink); color: #fff; }
+button.primary:hover:not(:disabled) { background: var(--brand); border-color: var(--brand); }
+button.big { font-size: 34px; padding: 24px 48px; }
+button:disabled { opacity: .3; cursor: not-allowed; }
+button:focus-visible, .filebtn:focus-within { outline: 4px solid var(--sky); outline-offset: 3px; }
+.filebtn { position: relative; display: inline-block; font-size: 20px; padding: 12px 22px; }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.msg { font-size: 22px; color: var(--brand); min-height: 1.4em; margin-top: 10px; }
+.msg.err { color: var(--red); }
+
+/* controles fora do palco (ficam pequenos no canto da janela) */
+#controls { position: fixed; right: 14px; bottom: 14px; display: flex; gap: 8px; z-index: 5; transition: opacity .3s; }
+#controls.hide { opacity: 0; pointer-events: none; }
+#controls button { font-size: 14px; padding: 8px 14px; border-width: 1.5px; background: rgba(250,249,246,.92); border-radius: 6px; }
+.overlay { position: fixed; inset: 0; background: rgba(31,34,48,.5); display: none; place-items: center; padding: 16px; z-index: 10; }
+.overlay.open { display: grid; }
+.dialog { background: var(--paper); border-top: 4px solid var(--sky); padding: 26px; max-width: 460px; display: grid; gap: 16px; font-size: 16px; }
+.dialog h3 { font-size: 22px; }
+.dialog p { color: var(--muted); line-height: 1.45; }
+.dialog .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.dialog button { font-size: 15px; padding: 10px 18px; }
+.modo { font-size: 18px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 8px 18px; border-radius: 999px; }
+.modo:empty { display: none; }
+.modo.ensaio { background: #f6e1da; color: var(--red); }
+.modo.valendo { background: var(--brand); color: #fff; }
+.vazio { font-size: 34px; color: var(--muted); margin-top: 40px; }
+.dialog .lbl { font-size: 14px; font-weight: 600; }
+.dialog input { font: 400 17px var(--font); padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 6px; background: #fff; }
+.dialog input:focus-visible { outline: 3px solid var(--sky); outline-offset: 1px; }
+.dialog button.link { border: 0; text-decoration: underline; padding-left: 4px; padding-right: 4px; color: var(--muted); }
+.lmsg { min-height: 1.4em; color: var(--brand); }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <div class="top">
+      <img class="logo-img" src="assets/fitcasa.png" alt="Fit Casa Rio Bonito">
+      <div style="display:flex; align-items:center; gap:28px"><span id="modoBadge" class="modo"></span><div class="kicker"><span class="dot"></span>Natal e Ano Novo 2026</div></div>
+    </div>
+
+    <!-- 1. Abertura -->
+    <section class="slide" data-nome="Abertura">
+      <div class="kicker">Sorteio ao vivo</div>
+      <h1>Salões de festas<br>de <em>Natal</em> e <em>Ano Novo</em></h1>
+      <p class="lead">Boa noite! Hoje vamos sortear as reservas dos <b>Salões 1 e 3</b> para as datas de fim de ano.</p>
+      <div class="band">
+        <div><div class="kicker sky">Reservas em sorteio</div><div class="big"><em>4</em> reservas · Salões 1 e 3</div></div>
+        <div><div class="kicker sky">Datas</div><div class="big">24 e 25/12 · 31/12 e 01/01</div></div>
+      </div>
+    </section>
+
+    <!-- 2. Regras -->
+    <section class="slide" data-nome="Regras">
+      <div class="kicker">Como funciona</div>
+      <h2>Regras do <em>sorteio</em></h2>
+      <div class="rules">
+        <div class="rule"><div class="ic">1</div><div><h3>Reserva única por data</h3><p>Natal vale para <b>24 e 25/12</b> e Ano Novo para <b>31/12 e 01/01</b>, com uma única taxa de uso.</p></div></div>
+        <div class="rule"><div class="ic">2</div><div><h3>Um salão por data</h3><p>A unidade pode ganhar no Natal e no Ano Novo, mas <b>não os dois salões na mesma data</b>.</p></div></div>
+        <div class="rule"><div class="ic">3</div><div><h3>Ordem dos sorteios</h3><p>Natal Salão 1, Natal Salão 3, Ano Novo Salão 1 e Ano Novo Salão 3. <b>Quem ganha o Salão 1 sai do Salão 3</b> daquela data.</p></div></div>
+        <div class="rule"><div class="ic">4</div><div><h3>Lista de espera</h3><p>Os demais inscritos formam a lista de espera, <b>na ordem sorteada</b>, para o caso de desistência.</p></div></div>
+      </div>
+    </section>
+
+    <!-- 3. Inscritos -->
+    <section class="slide" data-nome="Inscritos">
+      <div class="head-row">
+        <div><div class="kicker">Conferência</div><h2>Unidades <em>inscritas</em></h2></div>
+        <div style="text-align:right">
+          <div style="display:flex; gap:14px; align-items:center; justify-content:flex-end">
+            <span id="fonte"></span>
+            <span id="fileWrap" hidden><label class="filebtn" for="arquivo">Carregar respostas do Forms
+              <input id="arquivo" type="file" accept=".xlsx,.xls,.csv">
+            </label></span>
+          </div>
+          <div id="erro" class="msg err" role="status"></div>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="legend"><span id="dup"></span></div>
+      <div class="tables" id="tabelas"></div>
+    </section>
+
+    <!-- 4 a 7. Sorteios (gerados pelo script) -->
+    <div id="drawSlides" style="display:contents"></div>
+
+    <!-- 8. Resultado -->
+    <section class="slide" data-nome="Resultado">
+      <div class="head-row">
+        <div><div class="kicker">Resultado final</div><h2>Os <em>vencedores</em></h2></div>
+        <div style="text-align:right"><div style="display:flex; gap:12px; justify-content:flex-end"><button id="btnCopy" type="button" disabled>Copiar resultado para o WhatsApp</button></div><div id="copyMsg" class="msg" role="status"></div></div>
+      </div>
+      <div class="results" id="results"></div>
+      <div class="closing">
+        <p>Obrigado pela participação de todos. <b>Boas festas</b> para você e sua família.</p>
+        <div class="kicker muted">Lista de espera completa em cada sorteio</div>
+      </div>
+    </section>
+
+    <div class="bottom">
+      <div class="kicker">Gestão responsável</div>
+      <div class="progress" id="progress"></div>
+      <img class="sindi-img" src="assets/sindicompany.png" alt="Sindicompany">
+    </div>
+  </div>
+</div>
+
+<div id="controls">
+  <button id="btnPrev" type="button">← Voltar</button>
+  <button id="btnNext" type="button">Avançar →</button>
+  <button id="btnFull" type="button">Tela cheia</button>
+  <button id="btnModo" type="button" class="so-admin" hidden>Mudar para valendo</button>
+  <button id="btnReset" type="button" hidden>Recomeçar ensaio</button>
+  <button id="btnEntrar" type="button">Entrar</button>
+  <button id="btnSair" type="button" hidden>Sair</button>
+</div>
+
+<div class="overlay" id="confirm" role="dialog" aria-modal="true" aria-labelledby="ct">
+  <div class="dialog">
+    <h3 id="ct">Recomeçar o ensaio?</h3>
+    <p>Os resultados do ensaio serão apagados e a apresentação volta para a abertura. Nada do que vale é afetado.</p>
+    <div class="row">
+      <button id="cancelReset" type="button" class="primary">Continuar ensaio</button>
+      <button id="okReset" type="button">Apagar ensaio</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="overlay" id="login" role="dialog" aria-modal="true" aria-labelledby="lt">
+  <form class="dialog" id="formLogin">
+    <h3 id="lt">Acesso da sindicatura</h3>
+    <p>Somente a sindicatura entra para conduzir o sorteio. Quem só acompanha não precisa entrar.</p>
+    <label for="senha" class="lbl">Senha de murilo@sindicompany.com.br</label>
+    <input id="senha" type="password" autocomplete="current-password" required minlength="8">
+    <div class="row">
+      <button type="submit" class="primary">Entrar</button>
+      <button id="cancelLogin" type="button">Cancelar</button>
+      <button id="btnPrimeiro" type="button" class="link">Primeiro acesso: criar senha</button>
+    </div>
+    <p id="loginMsg" class="lmsg" role="status"></p>
+  </form>
+</div>
+
+<div class="overlay" id="publicar" role="dialog" aria-modal="true" aria-labelledby="pt">
+  <div class="dialog">
+    <h3 id="pt">Publicar lista oficial</h3>
+    <p id="publicarTexto"></p>
+    <div class="row">
+      <button id="okPublicar" type="button" class="primary">Publicar</button>
+      <button id="cancelPublicar" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="aviso" role="alertdialog" aria-modal="true" aria-labelledby="at">
+  <div class="dialog">
+    <h3 id="at">Atenção</h3>
+    <p id="avisoTexto"></p>
+    <div class="row"><button id="okAviso" type="button" class="primary">Entendi</button></div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// Sorteio dos Salões de Festas · Fit Casa Rio Bonito
+// Página pública. Qualquer pessoa vê a lista oficial e os resultados.
+// Só o administrador (login) publica a lista e sorteia. Os resultados ficam
+// gravados no banco (Supabase) com o horário do servidor, e o banco recusa
+// gravar um sorteio que já foi feito.
+// Código aberto: https://github.com/MuriloBarbelli/sorteio-fitcasa
+// ============================================================================
+const SUPABASE_URL = "https://fwededmtekfezryeoaga.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3ZWRlZG10ZWtmZXpyeWVvYWdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNjU2NzgsImV4cCI6MjEwOTg0MTY3OH0.rEFvSe91CC6kWyxDf5LgwG7RHguYCPJB3bSqRW3q2Qs"; // chave pública (só leitura para visitantes)
+const ADMIN_EMAIL = "murilo@sindicompany.com.br";
+
+const SORTEIOS = [
+  { nome: "Natal (24 e 25/12) - Salão 1", data: "Natal", dias: "24 e 25/12", salao: "Salão 1", curto: "N1" },
+  { nome: "Natal (24 e 25/12) - Salão 3", data: "Natal", dias: "24 e 25/12", salao: "Salão 3", curto: "N3" },
+  { nome: "Ano Novo (31/12 e 01/01) - Salão 1", data: "Ano Novo", dias: "31/12 e 01/01", salao: "Salão 1", curto: "A1" },
+  { nome: "Ano Novo (31/12 e 01/01) - Salão 3", data: "Ano Novo", dias: "31/12 e 01/01", salao: "Salão 3", curto: "A3" },
+];
+
+// Inscrições de exemplo, usadas só no modo ensaio quando ainda não há lista oficial.
+const TODOS = SORTEIOS.map(s => s.nome).join(";");
+const EXEMPLO = [
+  { Torre: "1", Apartamento: "0000", Sorteios: TODOS },
+  { Torre: "1", Apartamento: "9999", Sorteios: TODOS },
+  { Torre: "2", Apartamento: "1234", Sorteios: TODOS },
+  { Torre: "1", Apartamento: "4567", Sorteios: SORTEIOS.slice(0, 3).map(s => s.nome).join(";") },
+  { Torre: "2", Apartamento: "4455", Sorteios: TODOS },
+  { Torre: "1", Apartamento: "1111", Sorteios: TODOS },
+];
+
+const $ = id => document.getElementById(id);
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// ---------------------------------------------------------------- estado
+let admin = false;            // logado como administrador
+let ensaio = false;           // modo ensaio: nada é gravado
+let oficial = { lista: null, resultados: [] };          // vindo do banco
+let local = { lista: null, resultados: [] };            // só no ensaio
+let inscricoes = new Map();   // da lista em uso: id -> {torre, apto, sorteios:Set}
+let duplicadas = [];
+let resultados = [];          // da fonte em uso
+let rodando = false;
+let atual = 0;
+let animando = new Set();
+let gravando = new Set();      // sorteios que este navegador está gravando agora     // sorteios recebidos que ainda estão "girando" para o visitante
+
+// ---------------------------------------------------------------- utilidades
+function ajustarEscala() {
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  $("stage").style.transform = `translate(-50%, -50%) scale(${s})`;
+}
+window.addEventListener("resize", ajustarEscala);
+
+function normalizarChave(k) {
+  const t = String(k ?? "").trim().toLowerCase();
+  if (t.startsWith("torre")) return "Torre";
+  if (t.startsWith("apartamento")) return "Apartamento";
+  if (t.startsWith("sorteios")) return "Sorteios";
+  return String(k ?? "").trim();
+}
+const digitos = v => String(v ?? "").replace(/\D/g, "");
+const fmtHora = iso => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+// Excel do Forms -> lista no formato gravado no banco
+function linhasParaLista(linhas, arquivo) {
+  const mapa = new Map(), rep = [];
+  for (const bruta of linhas) {
+    const l = {};
+    for (const [k, v] of Object.entries(bruta)) l[normalizarChave(k)] = v;
+    const torre = digitos(l.Torre), apto = digitos(l.Apartamento);
+    if (!torre || !apto) continue;
+    const id = `T${torre}-${apto.padStart(4, "0")}`;
+    const sorteios = SORTEIOS.filter(s => String(l.Sorteios ?? "").includes(s.nome)).map(s => s.curto);
+    if (mapa.has(id)) rep.push(id);
+    mapa.set(id, { id, torre, apto: parseInt(apto, 10) > 0 ? String(parseInt(apto, 10)) : apto, sorteios }); // vale a última
+  }
+  return { arquivo, unidades: [...mapa.values()], repetidas: [...new Set(rep)] };
+}
+
+function usarLista(lista) {
+  inscricoes = new Map(); duplicadas = [];
+  if (!lista) return;
+  for (const u of lista.unidades) {
+    inscricoes.set(u.id, { torre: u.torre, apto: u.apto, sorteios: new Set(u.sorteios.map(c => SORTEIOS.find(s => s.curto === c)?.nome).filter(Boolean)) });
+  }
+  duplicadas = lista.repetidas || [];
+}
+
+const rotulo = id => { const u = inscricoes.get(id); return u ? `Torre ${u.torre} · Apto ${u.apto}` : id; };
+const curto = id => { const u = inscricoes.get(id); return u ? `T${u.torre} · ${u.apto}` : id; };
+function ordenarIds(ids) {
+  return [...ids].sort((a, b) => {
+    const ua = inscricoes.get(a), ub = inscricoes.get(b);
+    return (ua.torre - ub.torre) || (parseInt(ua.apto) - parseInt(ub.apto));
+  });
+}
+function aleatorio(n) { const r = new Uint32Array(1); crypto.getRandomValues(r); return r[0] % n; }
+function embaralhar(lista) {
+  const a = [...lista];
+  for (let i = a.length - 1; i > 0; i--) { const j = aleatorio(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+const inscritosEm = s => ordenarIds([...inscricoes].filter(([, u]) => u.sorteios.has(s.nome)).map(([id]) => id));
+function jaGanharamNaData(idx) {
+  const set = new Set();
+  resultados.forEach((r, i) => { if (r && r.vencedor && SORTEIOS[i].data === SORTEIOS[idx].data) set.add(r.vencedor); });
+  return set;
+}
+function proximoSorteio() { for (let i = 0; i < SORTEIOS.length; i++) if (!resultados[i]) return i; return -1; }
+const tamanho = n => n <= 30 ? "size-l" : n <= 90 ? "size-m" : "size-s";
+
+// ---------------------------------------------------------------- fonte de dados em uso
+function aplicarFonte() {
+  if (ensaio) {
+    usarLista(local.lista || oficial.lista || linhasParaLista(EXEMPLO, "Exemplo: inscrições de teste"));
+    resultados = local.resultados;
+  } else {
+    usarLista(oficial.lista);
+    resultados = oficial.resultados;
+  }
+  renderTudo();
+}
+
+// ---------------------------------------------------------------- telas
+function renderCabecalhoModo() {
+  const b = $("modoBadge");
+  if (admin && ensaio) { b.textContent = "Ensaio · não vale"; b.className = "modo ensaio"; }
+  else if (admin) { b.textContent = "Valendo · grava resultado"; b.className = "modo valendo"; }
+  else { b.textContent = ""; b.className = "modo"; }
+  document.querySelectorAll(".so-admin").forEach(el => el.hidden = !admin);
+  $("btnModo").textContent = ensaio ? "Mudar para valendo" : "Mudar para ensaio";
+  $("btnEntrar").hidden = admin;
+  $("btnSair").hidden = !admin;
+  $("btnReset").hidden = !(admin && ensaio);
+}
+
+function renderInscritos() {
+  const ids = ordenarIds(inscricoes.keys());
+  const listaAtual = ensaio ? (local.lista || oficial.lista) : oficial.lista;
+  const podeCarregar = admin && (ensaio || !oficial.resultados.length);
+  $("fileWrap").hidden = !podeCarregar;
+  if (!ids.length) {
+    $("fonte").textContent = "";
+    $("stats").innerHTML = "";
+    $("dup").innerHTML = "";
+    $("tabelas").innerHTML = `<p class="vazio">A lista oficial de inscritos ainda não foi publicada.</p>`;
+    return;
+  }
+  if (ensaio && !listaAtual) { $("fonte").textContent = "Exemplo: inscrições de teste"; $("fonte").className = "warn"; }
+  else if (ensaio && local.lista) { $("fonte").textContent = `Ensaio: ${local.lista.arquivo}`; $("fonte").className = "warn"; }
+  else { $("fonte").textContent = `Lista oficial publicada em ${fmtHora(oficial.lista.publicada_em)}`; $("fonte").className = "okfile"; }
+
+  $("stats").innerHTML = `<div class="stat"><b>${ids.length}</b><span>unidades inscritas</span></div>` +
+    SORTEIOS.map(s => `<div class="stat"><b>${inscritosEm(s).length}</b><span>${s.data}, ${s.salao}</span></div>`).join("");
+  $("dup").innerHTML = duplicadas.length ? `· Inscrição repetida, valeu a última: <b>${duplicadas.map(rotulo).join(", ")}</b>` : "";
+  const cab = `<thead><tr><th class="l">Torre</th><th class="l">Apto</th>${SORTEIOS.map(s => `<th>${s.data}<br>${s.salao}</th>`).join("")}</tr></thead>`;
+  $("tabelas").style.gridTemplateColumns = "1fr";
+  $("tabelas").innerHTML = `<table class="t-r">${cab}<tbody>${ids.map(id => {
+    const u = inscricoes.get(id);
+    return `<tr><td class="l">${u.torre}</td><td class="l apto">${u.apto}</td>${SORTEIOS.map(s => `<td>${u.sorteios.has(s.nome) ? '<span class="ok">✓</span>' : '<span class="no">–</span>'}</td>`).join("")}</tr>`;
+  }).join("")}</tbody></table>`;
+}
+
+function renderSorteios() {
+  const prox = proximoSorteio();
+  $("drawSlides").innerHTML = SORTEIOS.map((s, i) => {
+    const r = animando.has(i) ? null : resultados[i];
+    const inscritos = inscritosEm(s);
+    const bloqueados = r ? new Set(r.excluidos) : jaGanharamNaData(i);
+    const excl = inscritos.filter(id => bloqueados.has(id));
+    const aptos = inscritos.filter(id => !bloqueados.has(id));
+    let reveal;
+    if (r) reveal = r.vencedor
+      ? `<div class="reveal winner" id="reveal${i}"><div class="unit"><small>Vencedor</small>${rotulo(r.vencedor)}</div></div>`
+      : `<div class="reveal" id="reveal${i}"><div class="idle">Sem inscritos aptos</div></div>`;
+    else if (animando.has(i)) reveal = `<div class="reveal rolling" id="reveal${i}"><div class="unit"><small>Sorteio em andamento</small>Aguarde...</div></div>`;
+    else if (!inscritos.length) reveal = `<div class="reveal" id="reveal${i}"><div class="idle">Aguardando a lista de inscritos</div></div>`;
+    else if (i === prox) reveal = `<div class="reveal" id="reveal${i}"><div class="idle"><b>${aptos.length}</b> unidade${aptos.length === 1 ? "" : "s"} concorrendo</div></div>`;
+    else reveal = `<div class="reveal" id="reveal${i}"><div class="idle">Aguardando o sorteio anterior</div></div>`;
+    const nota = excl.length ? `<p class="draw-note">Fora deste sorteio por já ter ganho o Salão 1 nesta data: <b>${excl.map(rotulo).join(", ")}</b></p>` : "";
+    const quando = r && r.sorteado_em ? `<p class="draw-note">${ensaio ? "Ensaio feito em" : "Sorteado em"} <b>${fmtHora(r.sorteado_em)}</b>${ensaio ? "" : " (horário registrado pelo servidor)"}</p>` : "";
+    const botao = r || animando.has(i) || !admin ? "" : `<div style="margin-top:28px"><button id="btnDraw${i}" type="button" class="primary big" ${i === prox && aptos.length && !rodando ? "" : "disabled"}>Sortear ${s.data}, ${s.salao}</button></div>`;
+    const explica = r ? "" : `<p class="draw-note">O sistema sorteia a vencedora no clique, com chance igual para todas. A roleta passa <b>o mesmo número de vezes por todas as unidades</b> e para na sorteada.</p>`;
+    let direita;
+    if (r) {
+      direita = `<div class="kicker">Lista de espera</div>` + (r.suplentes.length
+        ? `<ol class="wait ${r.suplentes.length > 24 ? "small" : ""}">${r.suplentes.map(id => `<li>${curto(id)}</li>`).join("")}</ol>`
+        : `<p class="draw-note">Sem outras unidades inscritas.</p>`);
+    } else {
+      direita = `<div class="kicker">Concorrendo · ${aptos.length}</div>
+        <div class="chips ${tamanho(inscritos.length)}" style="grid-template-columns: repeat(auto-fill, minmax(${inscritos.length <= 30 ? 220 : inscritos.length <= 90 ? 170 : 130}px, 1fr))">
+        ${inscritos.map(id => `<div class="chip simple ${bloqueados.has(id) ? "out" : ""}" data-u="${id}"><span class="u">${curto(id)}</span></div>`).join("")}</div>`;
+    }
+    return `<section class="slide" data-nome="${s.data} ${s.salao}">
+      <div class="draw">
+        <div class="draw-left">
+          <div class="kicker">Sorteio ${i + 1} de 4 · Reserva única ${s.dias}</div>
+          <h2><em>${s.data}</em> · ${s.salao}</h2>
+          ${reveal}${nota}${quando}${botao}${explica}
+        </div>
+        <div class="draw-right">${direita}</div>
+      </div>
+    </section>`;
+  }).join("");
+  SORTEIOS.forEach((s, i) => { const b = $("btnDraw" + i); if (b) b.onclick = () => sortear(i); });
+}
+
+function renderResultado() {
+  const completo = SORTEIOS.every((s, i) => resultados[i] && !animando.has(i));
+  $("btnCopy").disabled = !completo;
+  $("results").innerHTML = SORTEIOS.map((s, i) => {
+    const r = animando.has(i) ? null : resultados[i];
+    const w = r ? (r.vencedor ? `<div class="w">${rotulo(r.vencedor)}</div>` : `<div class="w none">Sem inscritos</div>`) : `<div class="w none">A sortear</div>`;
+    let esp = "";
+    if (r && r.suplentes.length) {
+      const top = r.suplentes.slice(0, 3);
+      const resto = r.suplentes.length - top.length;
+      esp = `<div class="esp"><span class="kicker muted">Lista de espera</span><ol>${top.map(id => `<li>${curto(id)}</li>`).join("")}</ol>${resto ? `<span class="mais">+ ${resto} na tela do sorteio</span>` : ""}</div>`;
+    }
+    return `<div class="res"><div class="kicker muted">${s.data} · ${s.dias} · ${s.salao}</div>${w}${esp}</div>`;
+  }).join("");
+}
+
+function slides() { return [...document.querySelectorAll("#stage .slide")]; }
+function mostrar(n) {
+  const lista = slides();
+  atual = Math.max(0, Math.min(lista.length - 1, n));
+  lista.forEach((el, i) => el.classList.toggle("active", i === atual));
+  $("progress").innerHTML = lista.map((el, i) => `<i class="${i === atual ? "on" : i < atual ? "done" : ""}" title="${el.dataset.nome}"></i>`).join("");
+  $("btnPrev").disabled = rodando || atual === 0;
+  $("btnNext").disabled = rodando || atual === lista.length - 1;
+}
+function renderTudo() { renderCabecalhoModo(); renderInscritos(); renderSorteios(); renderResultado(); mostrar(atual); }
+
+// ---------------------------------------------------------------- roleta
+// Voltas completas: em cada volta, todas as unidades aparecem exatamente uma vez, em ordem aleatória.
+// Na última volta, a sorteada é a última a aparecer.
+function montarRoleta(aptos, vencedora, voltas) {
+  const n = aptos.length;
+  if (n === 2) {
+    const outra = aptos.find(id => id !== vencedora);
+    return Array.from({ length: voltas }, () => [outra, vencedora]).flat();
+  }
+  const seq = [];
+  for (let v = 0; v < voltas; v++) {
+    const volta = v === voltas - 1 ? [...embaralhar(aptos.filter(id => id !== vencedora)), vencedora] : embaralhar(aptos);
+    if (seq.length && volta[0] === seq[seq.length - 1]) {
+      const limite = v === voltas - 1 ? n - 1 : n;
+      const j = 1 + aleatorio(limite - 1);
+      [volta[0], volta[j]] = [volta[j], volta[0]];
+    }
+    seq.push(...volta);
+  }
+  return seq;
+}
+
+function planoRoleta(aptos, vencedora) {
+  const n = aptos.length;
+  const voltas = Math.max(1, Math.min(6, Math.round(48 / n)));
+  const seq = montarRoleta(aptos, vencedora, voltas);
+  const total = Math.min(9000, Math.max(5000, seq.length * 110));
+  const pesos = seq.map((_, k) => 1 + 14 * Math.pow(k / Math.max(1, seq.length - 1), 3));
+  const soma = pesos.reduce((a, b) => a + b, 0);
+  const intervalos = pesos.map(w => Math.max(30, total * w / soma));
+  return { seq, voltas, n, intervalos, duracao: Math.round(intervalos.reduce((a, b) => a + b, 0)) + 900 };
+}
+
+function girar(i, plano, aoTerminar) {
+  const reveal = $("reveal" + i);
+  reveal.className = "reveal rolling";
+  let k = 0;
+  const tick = () => {
+    const id = plano.seq[k];
+    const volta = Math.floor(k / plano.n) + 1;
+    reveal.innerHTML = `<div class="unit"><small>Sorteando · volta ${volta} de ${plano.voltas}</small>${rotulo(id)}</div>`;
+    document.querySelectorAll(".slide.active .chip[data-u]").forEach(c => {
+      const on = c.dataset.u === id;
+      c.classList.toggle("hot", on);
+      if (on) c.scrollIntoView({ block: "nearest" });
+    });
+    k++;
+    if (k < plano.seq.length) setTimeout(tick, plano.intervalos[k]);
+    else setTimeout(aoTerminar, 900);
+  };
+  tick();
+}
+
+function travarControles(sim) {
+  rodando = sim;
+  document.querySelectorAll("#stage button, #controls button").forEach(b => b.disabled = sim);
+  if (!sim) renderTudo();
+}
+
+async function sortear(i) {
+  if (!admin || rodando || resultados[i] || i !== proximoSorteio()) return;
+  const s = SORTEIOS[i];
+  const inscritos = inscritosEm(s);
+  const bloqueados = jaGanharamNaData(i);
+  const excluidos = inscritos.filter(id => bloqueados.has(id));
+  const aptos = inscritos.filter(id => !bloqueados.has(id));
+  if (!aptos.length) return;
+
+  const vencedor = aptos[aleatorio(aptos.length)];
+  const suplentes = embaralhar(aptos.filter(id => id !== vencedor));
+  const reduz = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const plano = aptos.length > 1 && !reduz ? planoRoleta(aptos, vencedor) : null;
+  const registro = { sorteio: i, vencedor, suplentes, excluidos, aptos: aptos.length, animacao_ms: plano ? plano.duracao : 0 };
+
+  travarControles(true);
+  if (ensaio) {
+    registro.sorteado_em = new Date().toISOString();
+  } else {
+    // Valendo: o resultado é gravado ANTES da roleta. Assim ele fica registrado no momento do clique,
+    // com o horário do servidor, e não pode ser trocado depois.
+    gravando.add(i);
+    $("reveal" + i).innerHTML = `<div class="unit"><small>Registrando</small>Aguarde...</div>`;
+    const { data, error } = await sb.from("resultados").insert(registro).select().single();
+    if (error) {
+      gravando.delete(i);
+      travarControles(false);
+      mostrarAviso(`O resultado não foi gravado (${error.message}). Nada foi sorteado. Confira a internet e clique de novo.`);
+      return;
+    }
+    registro.sorteado_em = data.sorteado_em;
+  }
+  const concluir = () => {
+    if (ensaio) local.resultados[i] = registro; else oficial.resultados[i] = registro;
+    animando.delete(i);
+    gravando.delete(i);
+    travarControles(false);
+  };
+  if (plano) { animando.add(i); girar(i, plano, concluir); } else concluir();
+}
+
+// ---------------------------------------------------------------- banco (leitura e tempo real)
+async function carregarOficial() {
+  if (!sb) { mostrarAviso("Não foi possível conectar. Confira a internet e recarregue a página."); return; }
+  const [l, r] = await Promise.all([
+    sb.from("lista").select("*").maybeSingle(),
+    sb.from("resultados").select("*").order("sorteio"),
+  ]);
+  if (l.error || r.error) { mostrarAviso("Não foi possível carregar os dados. Recarregue a página."); return; }
+  oficial.lista = l.data;
+  oficial.resultados = [];
+  (r.data || []).forEach(x => { oficial.resultados[x.sorteio] = x; });
+}
+
+function ouvirMudancas() {
+  if (!sb) return;
+  sb.channel("sorteio")
+    .on("postgres_changes", { event: "*", schema: "public", table: "lista" }, p => {
+      oficial.lista = p.new && p.new.id ? p.new : null;
+      if (!ensaio) aplicarFonte();
+    })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "resultados" }, p => {
+      const x = p.new;
+      if (oficial.resultados[x.sorteio] || gravando.has(x.sorteio)) return;   // é o próprio administrador
+      oficial.resultados[x.sorteio] = x;
+      if (ensaio) return;
+      // Visitante: mostra "em andamento" pelo tempo da roleta da live, depois revela.
+      if (x.animacao_ms > 0) {
+        animando.add(x.sorteio);
+        setTimeout(() => { animando.delete(x.sorteio); aplicarFonte(); }, x.animacao_ms);
+      }
+      aplicarFonte();
+    })
+    .subscribe();
+}
+
+// ---------------------------------------------------------------- login
+async function verificarAdmin() {
+  if (!sb) return false;
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return false;
+  const r = await sb.rpc("is_admin");
+  return r.data === true;
+}
+
+function abrir(id) { $(id).classList.add("open"); }
+function fechar(id) { $(id).classList.remove("open"); }
+function mostrarAviso(t) { $("avisoTexto").textContent = t; abrir("aviso"); }
+
+$("btnEntrar").onclick = () => { $("loginMsg").textContent = ""; abrir("login"); setTimeout(() => $("senha").focus(), 50); };
+$("cancelLogin").onclick = () => fechar("login");
+$("formLogin").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("loginMsg").textContent = "Entrando...";
+  const { error } = await sb.auth.signInWithPassword({ email: ADMIN_EMAIL, password: $("senha").value });
+  if (error) { $("loginMsg").textContent = "Não foi possível entrar. Confira a senha."; return; }
+  admin = await verificarAdmin();
+  if (!admin) { $("loginMsg").textContent = "Este acesso ainda não foi liberado."; await sb.auth.signOut(); return; }
+  $("senha").value = "";
+  fechar("login");
+  ensaio = true;                       // ao entrar, começa em ensaio por segurança
+  aplicarFonte();
+});
+$("btnPrimeiro").onclick = async () => {
+  const senha = $("senha").value;
+  if (senha.length < 8) { $("loginMsg").textContent = "Escolha uma senha com pelo menos 8 caracteres e clique de novo."; return; }
+  const { error } = await sb.auth.signUp({ email: ADMIN_EMAIL, password: senha });
+  $("loginMsg").textContent = error ? `Não foi possível criar: ${error.message}` : "Senha criada. Avise o Claude para liberar o acesso e depois clique em Entrar.";
+};
+$("btnSair").onclick = async () => { await sb.auth.signOut(); admin = false; ensaio = false; local = { lista: null, resultados: [] }; aplicarFonte(); };
+$("btnModo").onclick = () => {
+  if (rodando) return;
+  ensaio = !ensaio;
+  local.resultados = [];
+  aplicarFonte();
+};
+
+// ---------------------------------------------------------------- arquivo do Forms
+$("arquivo").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f || !admin) return;
+  $("erro").textContent = "";
+  let lista;
+  try {
+    if (typeof XLSX === "undefined") throw new Error("lib");
+    const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+    const linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "", raw: false });
+    const chaves = new Set(Object.keys(linhas[0] || {}).map(normalizarChave));
+    const faltam = ["Torre", "Apartamento", "Sorteios"].filter(k => !chaves.has(k));
+    if (faltam.length) { $("erro").textContent = `Faltam as colunas: ${faltam.join(", ")}. Confira os títulos no Forms.`; return; }
+    lista = linhasParaLista(linhas, f.name);
+  } catch (err) {
+    $("erro").textContent = err.message === "lib" ? "A leitura de Excel não carregou. Recarregue a página." : "Não consegui ler o arquivo. Baixe de novo pelo Forms.";
+    return;
+  }
+  if (ensaio) { local.lista = lista; local.resultados = []; aplicarFonte(); return; }
+  pendente = lista;
+  $("publicarTexto").textContent = `Publicar "${f.name}" como lista oficial? São ${lista.unidades.length} unidades. Todos que acessarem a página verão esta lista. Depois do primeiro sorteio, ela não pode mais ser trocada.`;
+  abrir("publicar");
+});
+let pendente = null;
+$("cancelPublicar").onclick = () => { pendente = null; fechar("publicar"); };
+$("okPublicar").onclick = async () => {
+  if (!pendente) return;
+  const { data, error } = await sb.from("lista").upsert({ id: 1, ...pendente }).select().single();
+  fechar("publicar");
+  pendente = null;
+  if (error) { mostrarAviso(`A lista não foi publicada: ${error.message}`); return; }
+  oficial.lista = data;
+  aplicarFonte();
+};
+
+// ---------------------------------------------------------------- outros controles
+function textoResultado() {
+  const linhas = ["*Resultado do sorteio dos Salões de Festas: Natal e Ano Novo*", ""];
+  SORTEIOS.forEach((s, i) => {
+    const r = resultados[i];
+    linhas.push(`*${s.data} (${s.dias}), ${s.salao}:* ${r.vencedor ? rotulo(r.vencedor) : "sem inscritos"}`);
+    if (r.suplentes.length) linhas.push(`Lista de espera: ${r.suplentes.map(rotulo).join("; ")}`);
+    linhas.push("");
+  });
+  linhas.push(`Conferência: ${location.href.split("#")[0]}`, "", "Sindicatura");
+  return linhas.join("\n");
+}
+$("btnCopy").onclick = async () => {
+  try { await navigator.clipboard.writeText(textoResultado()); $("copyMsg").textContent = "Copiado. É só colar no WhatsApp."; }
+  catch { $("copyMsg").textContent = "Não consegui copiar. Tente de novo."; }
+};
+$("btnPrev").onclick = () => { if (!rodando) mostrar(atual - 1); };
+$("btnNext").onclick = () => { if (!rodando) mostrar(atual + 1); };
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => o.classList.remove("open"));
+  if (rodando || document.querySelector(".overlay.open") || e.target.tagName === "INPUT") return;
+  if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); mostrar(atual + 1); }
+  if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); mostrar(atual - 1); }
+});
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if (e.target === o) o.classList.remove("open"); }));
+$("okAviso").onclick = () => fechar("aviso");
+$("btnFull").onclick = async () => {
+  try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
+  catch { $("btnFull").textContent = "Use F11"; }
+};
+$("btnReset").onclick = () => { if (!rodando) abrir("confirm"); };
+$("cancelReset").onclick = () => fechar("confirm");
+$("okReset").onclick = () => { local.resultados = []; atual = 0; $("copyMsg").textContent = ""; fechar("confirm"); aplicarFonte(); };
+
+// Os controles somem depois de 2,5 s sem mexer o mouse, para não aparecerem na live.
+let ocultar;
+function mostrarControles() {
+  $("controls").classList.remove("hide");
+  clearTimeout(ocultar);
+  ocultar = setTimeout(() => { if (!document.querySelector(".overlay.open")) $("controls").classList.add("hide"); }, 2500);
+}
+document.addEventListener("mousemove", mostrarControles);
+
+// ---------------------------------------------------------------- início
+(async function iniciar() {
+  ajustarEscala();
+  mostrarControles();
+  aplicarFonte();
+  await carregarOficial();
+  admin = await verificarAdmin();
+  ensaio = admin;                        // administrador sempre começa em ensaio
+  aplicarFonte();
+  if (!admin && SORTEIOS.every((s, i) => oficial.resultados[i])) mostrar(slides().length - 1);   // tudo sorteado: abre no resultado
+  ouvirMudancas();
+})();
+</script>
+</body>
+</html>
