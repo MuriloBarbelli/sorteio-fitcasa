@@ -507,10 +507,16 @@ const fmtHora = iso => new Date(iso).toLocaleString("pt-BR", { timeZone: "Americ
 // Excel do Forms -> lista no formato gravado no banco
 function linhasParaLista(linhas, arquivo) {
   const mapa = new Map(), rep = [];
-  for (const bruta of linhas) {
+  // "Vale a última inscrição": ordena pelo Id do Forms, que segue a ordem de envio.
+  // (A planilha do Forms nem sempre vem nessa ordem.)
+  const idDe = r => { const k = Object.keys(r).find(c => c.trim().toLowerCase() === "id"); return k ? parseInt(r[k], 10) : NaN; };
+  const ordenadas = linhas.map((r, i) => ({ r, i, id: idDe(r) }))
+    .sort((a, b) => (isNaN(a.id) || isNaN(b.id)) ? a.i - b.i : a.id - b.id).map(x => x.r);
+  for (const bruta of ordenadas) {
     const l = {};
     for (const [k, v] of Object.entries(bruta)) l[normalizarChave(k)] = v;
-    const torre = digitos(l.Torre), apto = digitos(l.Apartamento);
+    // número do apartamento = primeiro número do campo (ex.: "711 torre2" -> 711, "Apt 908" -> 908)
+    const torre = digitos(l.Torre), apto = (String(l.Apartamento ?? "").match(/\d+/) || [""])[0];
     if (!torre || !apto) continue;
     const id = `T${torre}-${apto.padStart(4, "0")}`;
     const sorteios = SORTEIOS.filter(s => String(l.Sorteios ?? "").includes(s.nome)).map(s => s.curto);
