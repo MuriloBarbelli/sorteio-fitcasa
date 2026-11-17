@@ -141,3 +141,26 @@ revoke execute on function public.resetar_sorteio() from public, anon;
 grant execute on function public.travar_sorteio() to authenticated;
 grant execute on function public.resetar_sorteio() to authenticated;
 alter publication supabase_realtime add table public.controle, public.historico_resets;
+
+-- ---------------------------------------------------------------------------
+-- Histórico público de todas as publicações da lista oficial (17/11)
+-- ---------------------------------------------------------------------------
+create table public.historico_listas (
+  id bigint generated always as identity primary key,
+  publicada_em timestamptz not null,
+  arquivo text not null,
+  unidades jsonb not null
+);
+alter table public.historico_listas enable row level security;
+create policy "todos leem o histórico de listas" on public.historico_listas for select to anon, authenticated using (true);
+create or replace function public.registra_lista() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.historico_listas (publicada_em, arquivo, unidades) values (new.publicada_em, new.arquivo, new.unidades);
+  return new;
+end $$;
+revoke execute on function public.registra_lista() from public, anon, authenticated;
+create trigger registra_lista after insert or update on public.lista for each row execute function public.registra_lista();
+alter publication supabase_realtime add table public.historico_listas;
+-- O histórico foi criado em 17/11 e recebeu as duas publicações anteriores: a original de 16/11
+-- e a correção da T1-1406 de 17/11 (pedido da moradora, dentro do prazo de correção).

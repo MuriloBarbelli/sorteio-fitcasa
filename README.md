@@ -25,7 +25,7 @@ A página tem dois modos, sempre indicados por uma faixa no topo:
 O botão **Auditoria**, na faixa do topo, abre três abas:
 
 - **Teste com 10.000 simulações:** roda o sorteio completo 10.000 vezes com a mesma função do sorteio válido e mostra, para cada salão, quantas vezes cada unidade ganhou e a faixa normal de variação (onde um sorteio justo cai em 99% das vezes).
-- **Linha do tempo:** publicação da lista, cada sorteio, trava e reinícios, com o horário do servidor.
+- **Linha do tempo:** cada publicação da lista (com o que mudou em relação à anterior), cada sorteio, trava e reinícios, com o horário do servidor.
 - **Como funciona e código:** explicação em português e o código que decide o resultado, extraído do próprio programa em funcionamento.
 
 O rodapé mostra a versão do código em uso, com link para essa versão exata no GitHub.

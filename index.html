@@ -102,6 +102,7 @@ h2 { font-size: 84px; font-weight: 800; line-height: 1; letter-spacing: -.01em; 
 .tables th, .tables td { border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
 .tables th { background: var(--beige); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); line-height: 1.25; position: sticky; top: 0; }
 .tables th.l, .tables td.l { text-align: left; }
+.tables td.apto .obs { display: block; font-size: .62em; font-weight: 500; font-style: italic; color: var(--red); letter-spacing: 0; white-space: normal; line-height: 1.25; margin-top: 2px; }
 .tables td.apto { font-weight: 700; font-variant-numeric: tabular-nums; }
 .tables td .ok { color: var(--brand); font-weight: 800; }
 .tables td .no { color: #cfcac0; }
@@ -530,7 +531,7 @@ function usarLista(lista) {
   inscricoes = new Map(); duplicadas = [];
   if (!lista) return;
   for (const u of lista.unidades) {
-    inscricoes.set(u.id, { torre: u.torre, apto: u.apto, sorteios: new Set(u.sorteios.map(c => SORTEIOS.find(s => s.curto === c)?.nome).filter(Boolean)) });
+    inscricoes.set(u.id, { torre: u.torre, apto: u.apto, obs: u.obs || "", sorteios: new Set(u.sorteios.map(c => SORTEIOS.find(s => s.curto === c)?.nome).filter(Boolean)) });
   }
   duplicadas = lista.repetidas || [];
 }
@@ -603,7 +604,13 @@ function renderInscritos() {
   }
   if (ensaio && !listaAtual) { $("fonte").textContent = "Exemplo: inscrições de teste"; $("fonte").className = "warn"; }
   else if (ensaio && local.lista) { $("fonte").textContent = `Simulação: ${local.lista.arquivo}`; $("fonte").className = "warn"; }
-  else { $("fonte").textContent = `Lista oficial publicada em ${fmtHora(oficial.lista.publicada_em)}`; $("fonte").className = "okfile"; }
+  else {
+    const pubs = oficial.publicacoes || [];
+    $("fonte").textContent = pubs.length > 1
+      ? `Lista oficial publicada em ${fmtHora(pubs[0].publicada_em)} · atualizada em ${fmtHora(oficial.lista.publicada_em)}`
+      : `Lista oficial publicada em ${fmtHora(oficial.lista.publicada_em)}`;
+    $("fonte").className = "okfile";
+  }
 
   $("stats").innerHTML = `<div class="stat"><b>${ids.length}</b><span>unidades inscritas</span></div>` +
     SORTEIOS.map(s => `<div class="stat"><b>${inscritosEm(s).length}</b><span>${s.data}, ${s.salao}</span></div>`).join("");
@@ -612,7 +619,7 @@ function renderInscritos() {
   $("tabelas").style.gridTemplateColumns = "1fr";
   $("tabelas").innerHTML = `<table class="t-r">${cab}<tbody>${ids.map(id => {
     const u = inscricoes.get(id);
-    return `<tr><td class="l">${u.torre}</td><td class="l apto">${u.apto}</td>${SORTEIOS.map(s => `<td>${u.sorteios.has(s.nome) ? '<span class="ok">✓</span>' : '<span class="no">–</span>'}</td>`).join("")}</tr>`;
+    return `<tr><td class="l">${u.torre}</td><td class="l apto">${u.apto}${u.obs ? `<span class="obs">${u.obs}</span>` : ""}</td>${SORTEIOS.map(s => `<td>${u.sorteios.has(s.nome) ? '<span class="ok">✓</span>' : '<span class="no">–</span>'}</td>`).join("")}</tr>`;
   }).join("")}</tbody></table>`;
 }
 
@@ -811,13 +818,15 @@ async function sortear(i) {
 // ---------------------------------------------------------------- banco (leitura e tempo real)
 async function carregarOficial() {
   if (!sb) { mostrarAviso("Não foi possível conectar. Confira a internet e recarregue a página."); return; }
-  const [l, r, c, h] = await Promise.all([
+  const [l, r, c, h, hl] = await Promise.all([
     sb.from("lista").select("*").maybeSingle(),
     sb.from("resultados").select("*").order("sorteio"),
     sb.from("controle").select("*").maybeSingle(),
     sb.from("historico_resets").select("*").order("resetado_em"),
+    sb.from("historico_listas").select("*").order("publicada_em"),
   ]);
-  if (l.error || r.error || c.error || h.error) { mostrarAviso("Não foi possível carregar os dados. Recarregue a página."); return; }
+  oficial.publicacoes = (hl.data || []);
+  if (l.error || r.error || c.error || h.error || hl.error) { mostrarAviso("Não foi possível carregar os dados. Recarregue a página."); return; }
   oficial.lista = l.data;
   oficial.controle = c.data || { travado: false, travado_em: null };
   oficial.historico = h.data || [];
@@ -847,6 +856,7 @@ function ouvirMudancas() {
     .on("postgres_changes", { event: "DELETE", schema: "public", table: "resultados" }, recarregar)
     .on("postgres_changes", { event: "*", schema: "public", table: "controle" }, recarregar)
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "historico_resets" }, recarregar)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "historico_listas" }, recarregar)
     .subscribe();
 }
 let recarga;
@@ -975,8 +985,24 @@ document.querySelectorAll(".abas button").forEach(b => b.onclick = () => trocarA
 
 function renderLinhaTempo() {
   const ev = [];
-  const L = oficial.lista;
-  if (L) ev.push({ t: L.publicada_em, txt: `Lista oficial publicada: ${L.unidades.length} unidades (arquivo ${L.arquivo})` });
+  // Cada publicação da lista fica registrada; a partir da segunda, mostra o que mudou em relação à anterior.
+  const pubs = oficial.publicacoes || [];
+  const nomeS = c => { const s = SORTEIOS.find(x => x.curto === c); return s ? `${s.data} ${s.salao}` : c; };
+  const nomeU = u => `T${u.torre} · ${u.apto}`;
+  pubs.forEach((p, i) => {
+    if (i === 0) { ev.push({ t: p.publicada_em, txt: `Lista oficial publicada: ${p.unidades.length} unidades (arquivo ${p.arquivo})` }); return; }
+    const antes = new Map(pubs[i - 1].unidades.map(u => [u.id, u])), depois = new Map(p.unidades.map(u => [u.id, u]));
+    const mud = [];
+    depois.forEach((u, id) => {
+      const a = antes.get(id);
+      if (!a) { mud.push(`${nomeU(u)} incluída`); return; }
+      const inc = u.sorteios.filter(c => !a.sorteios.includes(c)), exc = a.sorteios.filter(c => !u.sorteios.includes(c));
+      if (inc.length || exc.length) mud.push(`${nomeU(u)}: ${[inc.length ? "incluído " + inc.map(nomeS).join(", ") : "", exc.length ? "retirado " + exc.map(nomeS).join(", ") : ""].filter(Boolean).join("; ")}`);
+    });
+    antes.forEach((u, id) => { if (!depois.has(id)) mud.push(`${nomeU(u)} retirada`); });
+    ev.push({ t: p.publicada_em, alerta: true, txt: `Lista oficial atualizada: ${p.unidades.length} unidades. Alterações: ${mud.join("; ") || "nenhuma nos sorteios"} (${p.arquivo})` });
+  });
+  if (!pubs.length && oficial.lista) ev.push({ t: oficial.lista.publicada_em, txt: `Lista oficial publicada: ${oficial.lista.unidades.length} unidades (arquivo ${oficial.lista.arquivo})` });
   oficial.resultados.forEach((r, i) => { if (r) ev.push({ t: r.sorteado_em, txt: `Sorteio ${i + 1}, ${SORTEIOS[i].data} ${SORTEIOS[i].salao}: vencedor ${r.vencedor ? rotulo(r.vencedor) : "sem inscritos"} (${r.aptos} unidades concorrendo)` }); });
   if (oficial.controle.travado) ev.push({ t: oficial.controle.travado_em, txt: "Sorteio travado pela sindicatura" });
   oficial.historico.forEach(h => {
